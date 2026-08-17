@@ -423,55 +423,140 @@ section h2::after {
 
 /* 项目样式 */
 .projects {
-    background-color: #f8f9fa;
-}
-
-.projects-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 30px;
-}
-
-.project-card {
     background-color: #fff;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
 }
 
-.project-card:hover {
-    transform: translateY(-5px);
+.project-experience {
+    border-bottom: 1px solid #ddd;
+    border-top: 1px solid #ddd;
+    padding: 48px 0;
 }
 
-.project-image {
-    height: 200px;
-    overflow: hidden;
+.project-experience-header {
+    align-items: flex-start;
+    display: flex;
+    gap: 32px;
+    justify-content: space-between;
+    margin-bottom: 36px;
 }
 
-.project-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.project-card:hover .project-image img {
-    transform: scale(1.05);
-}
-
-.project-content {
-    padding: 20px;
-}
-
-.project-content h3 {
+.project-kicker {
+    color: #cc0000;
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 700;
     margin-bottom: 10px;
-    color: #333;
 }
 
-.project-content p {
-    margin-bottom: 20px;
+.project-experience h3 {
+    color: #222;
+    font-size: 2.25rem;
+    line-height: 1.25;
+}
+
+.project-status {
+    align-items: center;
+    color: #3d6848;
+    display: inline-flex;
+    flex-shrink: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    gap: 8px;
+    padding-top: 6px;
+}
+
+.project-experience-body {
+    display: grid;
+    gap: 72px;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
+}
+
+.project-summary {
     color: #555;
+    font-size: 1.2rem;
+    line-height: 1.85;
+    margin-bottom: 30px;
+}
+
+.project-highlights {
+    display: grid;
+    gap: 16px;
+    list-style: none;
+}
+
+.project-highlights li {
+    color: #555;
+    line-height: 1.75;
+    padding-left: 26px;
+    position: relative;
+}
+
+.project-highlights li::before {
+    background-color: #cc0000;
+    content: '';
+    height: 8px;
+    left: 0;
+    position: absolute;
+    top: 0.65em;
+    width: 8px;
+}
+
+.project-facts {
+    border-left: 1px solid #ddd;
+    padding-left: 32px;
+}
+
+.project-facts dl {
+    display: grid;
+    gap: 22px;
+}
+
+.project-facts dt {
+    color: #777;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.project-facts dd {
+    color: #222;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.6;
+}
+
+.project-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 30px;
+}
+
+.project-link {
+    align-items: center;
+    border: 2px solid #222;
+    border-radius: 4px;
+    color: #222;
+    display: inline-flex;
+    font-size: 0.9rem;
+    font-weight: 700;
+    gap: 8px;
+    justify-content: center;
+    padding: 10px 14px;
+    text-decoration: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.project-link-primary,
+.project-link:hover {
+    background-color: #cc0000;
+    border-color: #cc0000;
+    color: #fff;
+}
+
+.project-link-primary:hover {
+    background-color: #a80000;
+    border-color: #a80000;
 }
 
 /* 联系我样式 */
@@ -723,6 +808,18 @@ section h2::after {
         gap: 50px;
     }
 
+    .project-experience-body {
+        gap: 40px;
+        grid-template-columns: 1fr;
+    }
+
+    .project-facts {
+        border-left: 0;
+        border-top: 1px solid #ddd;
+        padding-left: 0;
+        padding-top: 32px;
+    }
+
     .contact-content {
         flex-direction: column;
         gap: 50px;
@@ -819,6 +916,28 @@ section h2::after {
         font-size: 1rem;
     }
 
+    .project-experience {
+        padding: 36px 0;
+    }
+
+    .project-experience-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .project-experience h3 {
+        font-size: 1.75rem;
+    }
+
+    .project-summary {
+        font-size: 1rem;
+    }
+
+    .project-actions,
+    .project-link {
+        width: 100%;
+    }
+
     .guestbook-panel {
         padding: 24px 0;
     }
@@ -862,6 +981,7 @@ section h2::after {
             <div class="navbar-menu">
                 <ul>
                     <li><a href="#about">关于我</a></li>
+                    <li><a href="#projects">项目经历</a></li>
                     <li><a href="#guestbook">留言板</a></li>
                 </ul>
             </div>
@@ -900,6 +1020,53 @@ section h2::after {
                     </div>
                 </div>
             </div>
+        </div>
+    </section>
+
+
+    <!-- 项目经历 -->
+    <section id="projects" class="projects">
+        <div class="container">
+            <h2>项目经历</h2>
+            <article class="project-experience">
+                <header class="project-experience-header">
+                    <div>
+                        <span class="project-kicker">2026 · 个人项目</span>
+                        <h3>响应式个人网站</h3>
+                    </div>
+                    <span class="project-status"><i class="fas fa-circle-check" aria-hidden="true"></i> 已上线</span>
+                </header>
+                <div class="project-experience-body">
+                    <div>
+                        <p class="project-summary">独立完成个人网站的页面设计、前端开发和线上发布，用于集中展示个人介绍、技术能力和项目成果，并持续完善访客互动体验。</p>
+                        <ul class="project-highlights">
+                            <li>使用 HTML、CSS 和 JavaScript 构建响应式页面，适配桌面与手机访问。</li>
+                            <li>接入 Utterances 留言系统，通过 GitHub Issues 保存和管理访客留言。</li>
+                            <li>使用 GitHub Pages 和 GitHub Actions 实现免费托管与自动部署。</li>
+                        </ul>
+                    </div>
+                    <aside class="project-facts" aria-label="项目详情">
+                        <dl>
+                            <div>
+                                <dt>职责</dt>
+                                <dd>独立设计与开发</dd>
+                            </div>
+                            <div>
+                                <dt>技术</dt>
+                                <dd>HTML · CSS · JavaScript</dd>
+                            </div>
+                            <div>
+                                <dt>部署</dt>
+                                <dd>GitHub Pages · GitHub Actions</dd>
+                            </div>
+                        </dl>
+                        <div class="project-actions">
+                            <a class="project-link project-link-primary" href="https://siesta1305539782-png.github.io/nina-Repository/" target="_blank" rel="noopener noreferrer"><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i> 查看网站</a>
+                            <a class="project-link" href="https://github.com/siesta1305539782-png/nina-Repository" target="_blank" rel="noopener noreferrer"><i class="fab fa-github" aria-hidden="true"></i> 查看源码</a>
+                        </div>
+                    </aside>
+                </div>
+            </article>
         </div>
     </section>
 

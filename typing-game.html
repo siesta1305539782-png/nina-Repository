@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="键盘分拣站是一款输入英文标签完成包裹分拣的动态打字小游戏。">
+    <title>键盘分拣站 | 动态打字游戏</title>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --accent: #ffb11b;
+            --danger: #ff4d4f;
+            --header: #11161c;
+            --ink: #f4f7f8;
+            --muted: #9caab5;
+            --signal: #39d7d1;
+        }
+
+        html,
+        body {
+            background: #090d11;
+            color: var(--ink);
+            font-family: Inter, "Segoe UI", Arial, sans-serif;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        button,
+        a,
+        canvas {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:focus-visible,
+        a:focus-visible {
+            outline: 3px solid rgba(57, 215, 209, 0.5);
+            outline-offset: 3px;
+        }
+
+        .visually-hidden {
+            clip: rect(0 0 0 0);
+            clip-path: inset(50%);
+            height: 1px;
+            overflow: hidden;
+            position: absolute;
+            white-space: nowrap;
+            width: 1px;
+        }
+
+        .game-header {
+            align-items: center;
+            background: var(--header);
+            border-bottom: 1px solid #26313a;
+            display: flex;
+            height: 56px;
+            justify-content: space-between;
+            padding: 0 18px;
+            position: relative;
+            z-index: 20;
+        }
+
+        .header-brand,
+        .back-link {
+            align-items: center;
+            color: var(--ink);
+            display: inline-flex;
+            font-size: 0.9rem;
+            font-weight: 800;
+            gap: 9px;
+            text-decoration: none;
+        }
+
+        .header-brand span {
+            color: var(--signal);
+        }
+
+        .back-link {
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        .back-link:hover {
+            color: #fff;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 7px;
+        }
+
+        .icon-button {
+            align-items: center;
+            background: #1a222a;
+            border: 1px solid #34414c;
+            border-radius: 4px;
+            color: var(--ink);
+            cursor: pointer;
+            display: inline-flex;
+            height: 36px;
+            justify-content: center;
+            width: 36px;
+        }
+
+        .icon-button:hover:not(:disabled) {
+            background: #26323c;
+            border-color: var(--signal);
+        }
+
+        .icon-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.4;
+        }
+
+        .game-layout {
+            background: #0c1116;
+            display: grid;
+            height: calc(100dvh - 56px);
+            place-items: center;
+            position: relative;
+        }
+
+        .stage {
+            aspect-ratio: 9 / 16;
+            background: #050a0f;
+            overflow: hidden;
+            position: relative;
+            touch-action: manipulation;
+            width: min(100vw, calc((100dvh - 56px) * 9 / 16), 540px);
+        }
+
+        .stage::before,
+        .stage::after {
+            content: "";
+            pointer-events: none;
+            position: absolute;
+            z-index: 4;
+        }
+
+        .stage::before {
+            border: 1px solid rgba(57, 215, 209, 0.16);
+            inset: 12px;
+        }
+
+        .stage::after {
+            background: rgba(255, 255, 255, 0.025);
+            height: 1px;
+            left: 0;
+            right: 0;
+            top: 45%;
+        }
+
+        #gameCanvas {
+            display: block;
+            height: 100%;
+            width: 100%;
+        }
+
+        .hud {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            left: 28px;
+            pointer-events: none;
+            position: absolute;
+            right: 28px;
+            top: 24px;
+            z-index: 6;
+        }
+
+        .hud-block {
+            min-width: 0;
+        }
+
+        .hud-block:nth-child(2) {
+            text-align: center;
+        }
+
+        .hud-block:last-child {
+            text-align: right;
+        }
+
+        .hud-label {
+            color: var(--muted);
+            display: block;
+            font-size: 0.62rem;
+            font-weight: 800;
+            margin-bottom: 3px;
+        }
+
+        .hud-value {
+            color: #fff;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 1rem;
+            font-variant-numeric: tabular-nums;
+            font-weight: 800;
+        }
+
+        .hud-lives {
+            color: var(--danger);
+            letter-spacing: 3px;
+        }
+
+        .lock-panel {
+            align-items: center;
+            bottom: 88px;
+            display: flex;
+            flex-direction: column;
+            left: 50%;
+            pointer-events: none;
+            position: absolute;
+            transform: translateX(-50%);
+            width: 78%;
+            z-index: 6;
+        }
+
+        .lock-label {
+            color: var(--muted);
+            font-size: 0.58rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        .lock-word {
+            background: rgba(5, 10, 15, 0.78);
+            border: 1px solid rgba(57, 215, 209, 0.28);
+            color: var(--muted);
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 0.96rem;
+            font-weight: 800;
+            min-height: 34px;
+            min-width: 180px;
+            padding: 7px 14px;
+            text-align: center;
+        }
+
+        .lock-word .typed {
+            color: var(--signal);
+        }
+
+        .lock-word .remaining {
+            color: #fff;
+        }
+
+        .overlay {
+            align-items: center;
+            background: rgba(4, 8, 12, 0.84);
+            display: flex;
+            flex-direction: column;
+            inset: 0;
+            justify-content: center;
+            padding: 36px;
+            position: absolute;
+            text-align: center;
+            z-index: 12;
+        }
+
+        .overlay[hidden] {
+            display: none;
+        }
+
+        .system-label {
+            color: var(--signal);
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 0.68rem;
+            font-weight: 800;
+            margin-bottom: 14px;
+        }
+
+        .overlay h1,
+        .overlay h2 {
+            letter-spacing: 0;
+            line-height: 1;
+            margin-bottom: 14px;
+        }
+
+        .overlay h1 {
+            font-size: 3.2rem;
+        }
+
+        .overlay h1 span {
+            color: var(--accent);
+            display: block;
+            font-size: 1.05rem;
+            margin-top: 12px;
+        }
+
+        .overlay h2 {
+            font-size: 2.4rem;
+        }
+
+        .overlay-copy {
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.7;
+            margin-bottom: 24px;
+            max-width: 330px;
+        }
+
+        .best-line,
+        .result-line {
+            color: #d8e0e5;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 0.78rem;
+            margin-bottom: 20px;
+        }
+
+        .best-line strong,
+        .result-line strong {
+            color: var(--accent);
+        }
+
+        .primary-button {
+            align-items: center;
+            background: var(--accent);
+            border: 0;
+            border-radius: 4px;
+            color: #17120a;
+            cursor: pointer;
+            display: inline-flex;
+            font-size: 0.92rem;
+            font-weight: 900;
+            gap: 9px;
+            justify-content: center;
+            min-height: 48px;
+            padding: 0 24px;
+        }
+
+        .primary-button:hover {
+            background: #ffc44d;
+        }
+
+        .keyboard-capture {
+            bottom: 0;
+            height: 1px;
+            left: 50%;
+            opacity: 0;
+            pointer-events: none;
+            position: absolute;
+            width: 1px;
+        }
+
+        .damage-flash {
+            background: rgba(255, 44, 47, 0.2);
+            inset: 0;
+            opacity: 0;
+            pointer-events: none;
+            position: absolute;
+            transition: opacity 0.12s ease;
+            z-index: 8;
+        }
+
+        .damage-flash.active {
+            opacity: 1;
+        }
+
+        @media (max-width: 560px) {
+            .game-header {
+                height: 52px;
+                padding: 0 12px;
+            }
+
+            .game-layout {
+                height: calc(100dvh - 52px);
+            }
+
+            .stage {
+                width: min(100vw, calc((100dvh - 52px) * 9 / 16), 540px);
+            }
+
+            .header-brand {
+                display: none;
+            }
+
+            .hud {
+                left: 20px;
+                right: 20px;
+                top: 20px;
+            }
+
+            .overlay {
+                padding: 24px;
+            }
+
+            .overlay h1 {
+                font-size: 2.65rem;
+            }
+
+            .lock-panel {
+                bottom: 76px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .damage-flash {
+                transition: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="game-header">
+        <a class="back-link" href="index.html#projects"><i class="fas fa-arrow-left" aria-hidden="true"></i> 返回项目经历</a>
+        <div class="header-brand"><i class="fas fa-boxes-stacked" aria-hidden="true"></i> 键盘<span>分拣站</span></div>
+        <div class="header-controls">
+            <button id="soundButton" class="icon-button" type="button" title="关闭声音" aria-label="关闭声音" aria-pressed="true"><i class="fas fa-volume-high" aria-hidden="true"></i></button>
+            <button id="pauseButton" class="icon-button" type="button" title="暂停" aria-label="暂停游戏" disabled><i class="fas fa-pause" aria-hidden="true"></i></button>
+        </div>
+    </header>
+
+    <main class="game-layout">
+        <section id="stage" class="stage" aria-label="键盘分拣站游戏区域">
+            <canvas id="gameCanvas" width="1080" height="1920" aria-label="包裹会沿传送带向下移动，输入英文标签即可完成分拣"></canvas>
+
+            <div class="hud" aria-live="polite">
+                <div class="hud-block">
+                    <span class="hud-label">SCORE</span>
+                    <strong id="scoreValue" class="hud-value">000000</strong>
+                </div>
+                <div class="hud-block">
+                    <span class="hud-label">SHIFT</span>
+                    <strong id="waveValue" class="hud-value">01</strong>
+                </div>
+                <div class="hud-block">
+                    <span class="hud-label">TRIES</span>
+                    <strong id="livesValue" class="hud-value hud-lives">●●●</strong>
+                </div>
+            </div>
+
+            <div class="lock-panel">
+                <span id="comboValue" class="lock-label">等待标签</span>
+                <div id="lockWord" class="lock-word"><span class="remaining">输入任意标签首字母</span></div>
+            </div>
+
+            <div id="menuOverlay" class="overlay">
+                <p class="system-label">SORTING LINE READY</p>
+                <h1>KEYSORT<span>键盘分拣站</span></h1>
+                <p class="overlay-copy">输入包裹标签上的英文单词，在它抵达截止线前完成分拣。</p>
+                <p class="best-line">最高得分 <strong id="menuBestValue">000000</strong></p>
+                <button id="startButton" class="primary-button" type="button"><i class="fas fa-play" aria-hidden="true"></i> 开始班次</button>
+            </div>
+
+            <div id="pauseOverlay" class="overlay" hidden>
+                <p class="system-label">SORTING PAUSED</p>
+                <h2>分拣暂停</h2>
+                <p class="overlay-copy">传送带已暂停运行。</p>
+                <button id="resumeButton" class="primary-button" type="button"><i class="fas fa-play" aria-hidden="true"></i> 继续分拣</button>
+            </div>
+
+            <div id="gameOverOverlay" class="overlay" hidden>
+                <p class="system-label">SHIFT COMPLETE</p>
+                <h2>本班结束</h2>
+                <p class="result-line">得分 <strong id="finalScoreValue">000000</strong> · 已分拣 <strong id="killsValue">0</strong></p>
+                <p id="recordMessage" class="overlay-copy">继续练习，刷新最高得分。</p>
+                <button id="restartButton" class="primary-button" type="button"><i class="fas fa-rotate-right" aria-hidden="true"></i> 再来一局</button>
+            </div>
+
+            <div id="damageFlash" class="damage-flash"></div>
+            <input id="keyboardCapture" class="keyboard-capture" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="输入包裹英文标签">
+            <div id="incomingWords" class="visually-hidden" aria-live="polite"></div>
+        </section>
+    </main>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const WIDTH = 540;
+        const HEIGHT = 960;
+        const DPR = 2;
+        ctx.scale(DPR, DPR);
+
+        const words = [
+            "bag", "box", "book", "card", "cargo", "clean", "code", "crate", "daily", "data",
+            "desk", "express", "fast", "fragile", "fresh", "gift", "glass", "label", "light", "local",
+            "mail", "order", "pack", "paper", "parcel", "pickup", "route", "safe", "scan", "seal",
+            "shift", "sort", "stamp", "stock", "store", "supply", "tape", "track", "truck", "urgent",
+            "valid", "warehouse", "weight", "yellow", "zip", "binary", "future", "logic", "pixel", "system"
+        ];
+
+        const ui = {
+            combo: document.getElementById("comboValue"),
+            damage: document.getElementById("damageFlash"),
+            finalScore: document.getElementById("finalScoreValue"),
+            gameOver: document.getElementById("gameOverOverlay"),
+            incomingWords: document.getElementById("incomingWords"),
+            input: document.getElementById("keyboardCapture"),
+            kills: document.getElementById("killsValue"),
+            lives: document.getElementById("livesValue"),
+            lockWord: document.getElementById("lockWord"),
+            menu: document.getElementById("menuOverlay"),
+            menuBest: document.getElementById("menuBestValue"),
+            pause: document.getElementById("pauseOverlay"),
+            pauseButton: document.getElementById("pauseButton"),
+            recordMessage: document.getElementById("recordMessage"),
+            restart: document.getElementById("restartButton"),
+            resume: document.getElementById("resumeButton"),
+            score: document.getElementById("scoreValue"),
+            sound: document.getElementById("soundButton"),
+            stage: document.getElementById("stage"),
+            start: document.getElementById("startButton"),
+            wave: document.getElementById("waveValue")
+        };
+
+        const game = {
+            audio: null,
+            best: readBest(),
+            combo: 0,
+            enemies: [],
+            explosions: [],
+            gridOffset: 0,
+            kills: 0,
+            lastTime: performance.now(),
+            lives: 3,
+            mode: "menu",
+            nextId: 1,
+            projectiles: [],
+            score: 0,
+            soundOn: true,
+            spawnTimer: 0,
+            stars: createStars(90),
+            targetId: null,
+            wave: 1
+        };
+
+        function readBest() {
+            try {
+                return Number(localStorage.getItem("keysort-best")) || 0;
+            } catch (error) {
+                return 0;
+            }
+        }
+
+        function saveBest(score) {
+            try {
+                localStorage.setItem("keysort-best", String(score));
+            } catch (error) {
+                // Local storage is optional; gameplay still works without it.
+            }
+        }
+
+        function createStars(count) {
+            return Array.from({ length: count }, () => ({
+                alpha: 0.25 + Math.random() * 0.7,
+                size: 0.5 + Math.random() * 1.8,
+                speed: 12 + Math.random() * 48,
+                x: Math.random() * WIDTH,
+                y: Math.random() * HEIGHT
+            }));
+        }
+
+        function formatScore(value) {
+            return String(value).padStart(6, "0");
+        }
+
+        function focusKeyboard() {
+            if (game.mode === "playing") ui.input.focus({ preventScroll: true });
+        }
+
+        function playTone(frequency, duration, type = "sine", volume = 0.035) {
+            if (!game.soundOn) return;
+            try {
+                game.audio ||= new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = game.audio.createOscillator();
+                const gain = game.audio.createGain();
+                oscillator.type = type;
+                oscillator.frequency.value = frequency;
+                gain.gain.setValueAtTime(volume, game.audio.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, game.audio.currentTime + duration);
+                oscillator.connect(gain).connect(game.audio.destination);
+                oscillator.start();
+                oscillator.stop(game.audio.currentTime + duration);
+            } catch (error) {
+                game.soundOn = false;
+            }
+        }
+
+        function updateHud() {
+            ui.score.textContent = formatScore(game.score);
+            ui.wave.textContent = String(game.wave).padStart(2, "0");
+            ui.lives.textContent = `${"●".repeat(game.lives)}${"○".repeat(3 - game.lives)}`;
+            ui.combo.textContent = game.combo > 1 ? `COMBO × ${game.combo}` : (game.targetId ? "包裹已选中" : "等待标签");
+
+            const target = game.enemies.find(enemy => enemy.id === game.targetId);
+            if (target) {
+                const typed = target.word.slice(0, target.typed);
+                const remaining = target.word.slice(target.typed);
+                ui.lockWord.innerHTML = `<span class="typed">${typed}</span><span class="remaining">${remaining}</span>`;
+            } else {
+                ui.lockWord.innerHTML = '<span class="remaining">输入任意标签首字母</span>';
+            }
+
+            ui.incomingWords.textContent = game.enemies.length
+                ? `待分拣标签：${game.enemies.map(enemy => enemy.word).join("，")}`
+                : "传送带暂时空闲";
+        }
+
+        function resetGame() {
+            game.combo = 0;
+            game.enemies = [];
+            game.explosions = [];
+            game.kills = 0;
+            game.lives = 3;
+            game.projectiles = [];
+            game.score = 0;
+            game.spawnTimer = 0.25;
+            game.targetId = null;
+            game.wave = 1;
+            ui.damage.classList.remove("active");
+            updateHud();
+        }
+
+        function startGame() {
+            resetGame();
+            game.mode = "playing";
+            game.lastTime = performance.now();
+            ui.menu.hidden = true;
+            ui.pause.hidden = true;
+            ui.gameOver.hidden = true;
+            ui.pauseButton.disabled = false;
+            ui.pauseButton.innerHTML = '<i class="fas fa-pause" aria-hidden="true"></i>';
+            ui.pauseButton.setAttribute("aria-label", "暂停游戏");
+            ui.pauseButton.title = "暂停";
+            focusKeyboard();
+            playTone(440, 0.09, "triangle", 0.05);
+            window.setTimeout(() => playTone(660, 0.13, "triangle", 0.04), 80);
+        }
+
+        function pauseGame() {
+            if (game.mode !== "playing") return;
+            game.mode = "paused";
+            ui.pause.hidden = false;
+            ui.pauseButton.innerHTML = '<i class="fas fa-play" aria-hidden="true"></i>';
+            ui.pauseButton.setAttribute("aria-label", "继续游戏");
+            ui.pauseButton.title = "继续";
+            ui.input.blur();
+        }
+
+        function resumeGame() {
+            if (game.mode !== "paused") return;
+            game.mode = "playing";
+            game.lastTime = performance.now();
+            ui.pause.hidden = true;
+            ui.pauseButton.innerHTML = '<i class="fas fa-pause" aria-hidden="true"></i>';
+            ui.pauseButton.setAttribute("aria-label", "暂停游戏");
+            ui.pauseButton.title = "暂停";
+            focusKeyboard();
+        }
+
+        function endGame() {
+            game.mode = "over";
+            game.targetId = null;
+            ui.pauseButton.disabled = true;
+            ui.input.blur();
+            const isRecord = game.score > game.best;
+            if (isRecord) {
+                game.best = game.score;
+                saveBest(game.best);
+            }
+            ui.finalScore.textContent = formatScore(game.score);
+            ui.kills.textContent = game.kills;
+            ui.recordMessage.textContent = isRecord ? "新的最高得分已保存。" : "继续练习，刷新最高得分。";
+            ui.menuBest.textContent = formatScore(game.best);
+            ui.gameOver.hidden = false;
+            updateHud();
+            playTone(140, 0.35, "sawtooth", 0.045);
+        }
+
+        function selectWord() {
+            const maxLength = Math.min(8, 4 + Math.floor(game.wave / 2));
+            const pool = words.filter(word => word.length <= maxLength);
+            const recent = new Set(game.enemies.map(enemy => enemy.word));
+            const available = pool.filter(word => !recent.has(word));
+            const source = available.length ? available : pool;
+            return source[Math.floor(Math.random() * source.length)];
+        }
+
+        function spawnEnemy() {
+            const word = selectWord();
+            const lanes = [135, 270, 405];
+            const freeLanes = lanes.filter(lane => !game.enemies.some(enemy => enemy.y < 245 && enemy.x === lane));
+            const choices = freeLanes.length ? freeLanes : lanes;
+            const x = choices[Math.floor(Math.random() * choices.length)];
+            const colors = ["#d9a441", "#5d8f9f", "#bb6b57", "#77885d"];
+            game.enemies.push({
+                color: colors[game.nextId % colors.length],
+                id: game.nextId++,
+                phase: Math.random() * Math.PI * 2,
+                speed: 22 + game.wave * 2.8 + Math.random() * 7,
+                typed: 0,
+                word,
+                x,
+                y: 125
+            });
+            updateHud();
+        }
+
+        function addExplosion(x, y, color = "#ffb11b") {
+            for (let index = 0; index < 13; index += 1) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 35 + Math.random() * 100;
+                game.explosions.push({
+                    color,
+                    life: 0.45 + Math.random() * 0.25,
+                    maxLife: 0.7,
+                    size: 1.5 + Math.random() * 3.5,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    x,
+                    y
+                });
+            }
+        }
+
+        function fireAt(enemy) {
+            game.projectiles.push({
+                life: 0.18,
+                maxLife: 0.18,
+                x1: WIDTH / 2,
+                x2: enemy.x,
+                y1: 866,
+                y2: enemy.y + 4
+            });
+            playTone(560 + enemy.typed * 45, 0.055, "square", 0.025);
+        }
+
+        function destroyEnemy(enemy) {
+            fireAt(enemy);
+            addExplosion(enemy.x, enemy.y, "#39d7d1");
+            game.enemies = game.enemies.filter(item => item.id !== enemy.id);
+            game.targetId = null;
+            game.combo += 1;
+            game.kills += 1;
+            game.wave = Math.floor(game.kills / 7) + 1;
+            game.score += enemy.word.length * 100 + Math.max(0, game.combo - 1) * 30;
+            playTone(880, 0.11, "triangle", 0.04);
+            updateHud();
+        }
+
+        function handleCharacter(character) {
+            if (game.mode !== "playing" || !/^[a-z]$/.test(character)) return;
+            let target = game.enemies.find(enemy => enemy.id === game.targetId);
+
+            if (!target) {
+                const candidates = game.enemies
+                    .filter(enemy => enemy.word[0] === character)
+                    .sort((a, b) => b.y - a.y);
+                target = candidates[0];
+                if (!target) {
+                    game.combo = 0;
+                    playTone(110, 0.08, "sawtooth", 0.025);
+                    updateHud();
+                    return;
+                }
+                game.targetId = target.id;
+            }
+
+            if (target.word[target.typed] === character) {
+                target.typed += 1;
+                fireAt(target);
+                if (target.typed >= target.word.length) destroyEnemy(target);
+            } else {
+                game.combo = 0;
+                playTone(105, 0.1, "sawtooth", 0.03);
+            }
+            updateHud();
+        }
+
+        function loseShield(enemy) {
+            game.enemies = game.enemies.filter(item => item.id !== enemy.id);
+            if (game.targetId === enemy.id) game.targetId = null;
+            game.combo = 0;
+            game.lives -= 1;
+            addExplosion(enemy.x, 840, "#ff4d4f");
+            ui.damage.classList.add("active");
+            window.setTimeout(() => ui.damage.classList.remove("active"), 120);
+            playTone(90, 0.25, "sawtooth", 0.05);
+            updateHud();
+            if (game.lives <= 0) endGame();
+        }
+
+        function update(dt) {
+            const starFactor = game.mode === "playing" ? 1 : 0.28;
+            game.stars.forEach(star => {
+                star.y += star.speed * dt * starFactor;
+                if (star.y > HEIGHT) {
+                    star.y = -4;
+                    star.x = Math.random() * WIDTH;
+                }
+            });
+            game.gridOffset = (game.gridOffset + 42 * dt * starFactor) % 48;
+
+            if (game.mode !== "playing") return;
+
+            game.spawnTimer -= dt;
+            if (game.spawnTimer <= 0) {
+                spawnEnemy();
+                game.spawnTimer = Math.max(0.75, 2.05 - game.wave * 0.09) + Math.random() * 0.45;
+            }
+
+            [...game.enemies].forEach(enemy => {
+                enemy.phase += dt * 1.8;
+                enemy.y += enemy.speed * dt;
+                if (enemy.y > 820) loseShield(enemy);
+            });
+
+            game.projectiles.forEach(projectile => {
+                projectile.life -= dt;
+            });
+            game.projectiles = game.projectiles.filter(projectile => projectile.life > 0);
+
+            game.explosions.forEach(particle => {
+                particle.life -= dt;
+                particle.x += particle.vx * dt;
+                particle.y += particle.vy * dt;
+            });
+            game.explosions = game.explosions.filter(particle => particle.life > 0);
+        }
+
+        function drawBackground() {
+            ctx.fillStyle = "#10161b";
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+            ctx.fillStyle = "#1b242b";
+            ctx.fillRect(62, 0, 416, HEIGHT);
+            ctx.fillStyle = "#252f36";
+            ctx.fillRect(73, 0, 394, HEIGHT);
+
+            ctx.strokeStyle = "rgba(210, 224, 230, 0.11)";
+            ctx.lineWidth = 2;
+            for (let y = game.gridOffset; y < HEIGHT; y += 48) {
+                ctx.beginPath();
+                ctx.moveTo(74, y);
+                ctx.lineTo(466, y);
+                ctx.stroke();
+            }
+
+            ctx.setLineDash([10, 14]);
+            ctx.strokeStyle = "rgba(57, 215, 209, 0.14)";
+            [202, 338].forEach(x => {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, HEIGHT);
+                ctx.stroke();
+            });
+            ctx.setLineDash([]);
+
+            for (let y = game.gridOffset - 64; y < HEIGHT; y += 64) {
+                ctx.fillStyle = "#ffb11b";
+                ctx.fillRect(43, y, 14, 30);
+                ctx.fillRect(483, y + 32, 14, 30);
+                ctx.fillStyle = "#2c343a";
+                ctx.fillRect(43, y + 30, 14, 32);
+                ctx.fillRect(483, y, 14, 32);
+            }
+
+            game.stars.forEach(star => {
+                ctx.globalAlpha = star.alpha * 0.45;
+                ctx.fillStyle = star.size > 1.6 ? "#39d7d1" : "#cbd3d7";
+                ctx.fillRect(star.x, star.y, star.size, star.size);
+            });
+            ctx.globalAlpha = 1;
+
+            if (game.mode === "menu") {
+                ctx.fillStyle = "rgba(255, 177, 27, 0.13)";
+                ctx.fillRect(190, 186, 160, 112);
+                ctx.strokeStyle = "rgba(255, 177, 27, 0.34)";
+                ctx.lineWidth = 3;
+                ctx.strokeRect(190, 186, 160, 112);
+                ctx.fillStyle = "rgba(57, 215, 209, 0.22)";
+                ctx.fillRect(259, 186, 22, 112);
+                ctx.beginPath();
+                ctx.moveTo(190, 222);
+                ctx.lineTo(270, 260);
+                ctx.lineTo(350, 222);
+                ctx.stroke();
+            }
+        }
+
+        function drawPlayer() {
+            const x = WIDTH / 2;
+            const y = 872;
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.fillStyle = "#1c282f";
+            ctx.strokeStyle = "#39d7d1";
+            ctx.lineWidth = 2;
+            ctx.fillRect(-64, -18, 128, 42);
+            ctx.strokeRect(-64, -18, 128, 42);
+
+            ctx.fillStyle = "#39d7d1";
+            ctx.fillRect(-28, -8, 56, 5);
+            ctx.fillStyle = "#dce8eb";
+            ctx.font = '700 10px "SFMono-Regular", Consolas, monospace';
+            ctx.textAlign = "center";
+            ctx.fillText("SORT GATE", 0, 12);
+
+            ctx.strokeStyle = "#ffb11b";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(-12, 30);
+            ctx.lineTo(-42, 46);
+            ctx.lineTo(-70, 46);
+            ctx.moveTo(12, 30);
+            ctx.lineTo(42, 46);
+            ctx.lineTo(70, 46);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawEnemy(enemy) {
+            const target = enemy.id === game.targetId;
+            const bob = Math.sin(enemy.phase) * 1.5;
+            const x = enemy.x + bob;
+            const y = enemy.y;
+
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.strokeStyle = target ? "#39d7d1" : "#ffb11b";
+            ctx.fillStyle = enemy.color;
+            ctx.lineWidth = target ? 3 : 2;
+            ctx.fillRect(-34, -24, 68, 48);
+            ctx.strokeRect(-34, -24, 68, 48);
+            ctx.fillStyle = "rgba(255, 244, 207, 0.72)";
+            ctx.fillRect(-7, -24, 14, 48);
+            ctx.strokeStyle = "rgba(35, 30, 22, 0.35)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(-34, -24);
+            ctx.lineTo(0, -4);
+            ctx.lineTo(34, -24);
+            ctx.stroke();
+            if (target) {
+                ctx.strokeStyle = "rgba(57, 215, 209, 0.85)";
+                ctx.strokeRect(-40, -30, 80, 60);
+            }
+            ctx.restore();
+
+            ctx.font = '700 20px "SFMono-Regular", Consolas, monospace';
+            const textWidth = ctx.measureText(enemy.word).width;
+            const labelX = Math.max(8, Math.min(WIDTH - textWidth - 20, x - textWidth / 2 - 10));
+            const labelY = y + 27;
+            ctx.fillStyle = "rgba(3, 7, 10, 0.88)";
+            ctx.fillRect(labelX, labelY, textWidth + 20, 31);
+            if (target) {
+                ctx.strokeStyle = "rgba(57, 215, 209, 0.75)";
+                ctx.strokeRect(labelX, labelY, textWidth + 20, 31);
+            }
+            ctx.textBaseline = "middle";
+            const typed = enemy.word.slice(0, enemy.typed);
+            const remaining = enemy.word.slice(enemy.typed);
+            ctx.fillStyle = "#39d7d1";
+            ctx.fillText(typed, labelX + 10, labelY + 16);
+            ctx.fillStyle = "#f7fafb";
+            ctx.fillText(remaining, labelX + 10 + ctx.measureText(typed).width, labelY + 16);
+        }
+
+        function drawEffects() {
+            game.projectiles.forEach(projectile => {
+                const alpha = Math.max(0, projectile.life / projectile.maxLife);
+                ctx.strokeStyle = `rgba(57, 215, 209, ${alpha})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(projectile.x1, projectile.y1);
+                ctx.lineTo(projectile.x2, projectile.y2);
+                ctx.stroke();
+                ctx.fillStyle = "#fff";
+                ctx.beginPath();
+                ctx.arc(projectile.x2, projectile.y2, 4 * alpha, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            game.explosions.forEach(particle => {
+                ctx.globalAlpha = Math.max(0, particle.life / particle.maxLife);
+                ctx.fillStyle = particle.color;
+                ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        function drawDangerLine() {
+            ctx.strokeStyle = "rgba(255, 77, 79, 0.32)";
+            ctx.setLineDash([7, 9]);
+            ctx.beginPath();
+            ctx.moveTo(26, 820);
+            ctx.lineTo(WIDTH - 26, 820);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = "rgba(255, 121, 93, 0.72)";
+            ctx.font = '700 10px "SFMono-Regular", Consolas, monospace';
+            ctx.textAlign = "right";
+            ctx.fillText("SORT DEADLINE", WIDTH - 28, 813);
+            ctx.textAlign = "start";
+        }
+
+        function draw() {
+            drawBackground();
+            drawDangerLine();
+            game.enemies.forEach(drawEnemy);
+            drawEffects();
+            drawPlayer();
+        }
+
+        function frame(now) {
+            const dt = Math.min(0.033, Math.max(0, (now - game.lastTime) / 1000));
+            game.lastTime = now;
+            update(dt);
+            draw();
+            requestAnimationFrame(frame);
+        }
+
+        ui.input.addEventListener("keydown", event => {
+            if (/^[a-zA-Z]$/.test(event.key)) {
+                event.preventDefault();
+                handleCharacter(event.key.toLowerCase());
+            }
+        });
+
+        ui.input.addEventListener("input", event => {
+            const typed = event.data || ui.input.value;
+            [...typed.toLowerCase()].forEach(handleCharacter);
+            ui.input.value = "";
+        });
+
+        document.addEventListener("keydown", event => {
+            if (event.target === ui.input) return;
+            if (event.key === "Enter" && (game.mode === "menu" || game.mode === "over")) {
+                startGame();
+                return;
+            }
+            if (event.key === "Escape") {
+                game.mode === "playing" ? pauseGame() : resumeGame();
+                return;
+            }
+            if (/^[a-zA-Z]$/.test(event.key)) {
+                event.preventDefault();
+                handleCharacter(event.key.toLowerCase());
+            }
+        });
+
+        ui.stage.addEventListener("pointerdown", focusKeyboard);
+        ui.start.addEventListener("click", startGame);
+        ui.restart.addEventListener("click", startGame);
+        ui.resume.addEventListener("click", resumeGame);
+        ui.pauseButton.addEventListener("click", () => {
+            game.mode === "playing" ? pauseGame() : resumeGame();
+        });
+        ui.sound.addEventListener("click", () => {
+            game.soundOn = !game.soundOn;
+            ui.sound.setAttribute("aria-pressed", String(game.soundOn));
+            ui.sound.setAttribute("aria-label", game.soundOn ? "关闭声音" : "打开声音");
+            ui.sound.title = game.soundOn ? "关闭声音" : "打开声音";
+            ui.sound.innerHTML = game.soundOn
+                ? '<i class="fas fa-volume-high" aria-hidden="true"></i>'
+                : '<i class="fas fa-volume-xmark" aria-hidden="true"></i>';
+            focusKeyboard();
+        });
+
+        document.addEventListener("visibilitychange", () => {
+            game.lastTime = performance.now();
+        });
+
+        ui.menuBest.textContent = formatScore(game.best);
+        updateHud();
+        requestAnimationFrame(frame);
+    </script>
+</body>
+</html>

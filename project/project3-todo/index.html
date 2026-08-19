@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f2ed">
+  <title>时序 - 时间分配计时器</title>
+  <style>
+    :root {
+      --paper: #f4f2ed;
+      --surface: #ffffff;
+      --ink: #20231f;
+      --muted: #6c706a;
+      --line: #d9d8d1;
+      --green: #1f6b52;
+      --green-soft: #dcebe4;
+      --coral: #db634c;
+      --yellow: #e7b446;
+      --blue: #4d78a8;
+      --violet: #81689d;
+      --shadow: 0 18px 50px rgba(35, 38, 33, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-width: 320px; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: Inter, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input { font: inherit; }
+
+    button { color: inherit; }
+
+    .app {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      position: relative;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 34px;
+      border: 2px solid var(--ink);
+      border-radius: 50%;
+    }
+
+    .brand-mark::before {
+      content: "";
+      position: absolute;
+      left: 15px;
+      top: 5px;
+      width: 2px;
+      height: 10px;
+      border-radius: 2px;
+      background: var(--coral);
+      transform-origin: bottom;
+      transform: rotate(32deg);
+    }
+
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      left: 15px;
+      top: 14px;
+      width: 8px;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--ink);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1;
+      font-weight: 780;
+    }
+
+    .brand p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+
+    .back-link {
+      display: inline-flex;
+      min-height: 38px;
+      align-items: center;
+      gap: 7px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: var(--ink);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background-color .16s ease, border-color .16s ease;
+    }
+
+    .back-link:hover { background: var(--surface); border-color: #b7b8b1; }
+
+    .icon-btn,
+    .text-btn,
+    .primary-btn,
+    .secondary-btn,
+    .row-action {
+      border: 0;
+      cursor: pointer;
+      transition: transform .16s ease, background-color .16s ease, color .16s ease, border-color .16s ease;
+    }
+
+    button:active { transform: translateY(1px); }
+    button:focus-visible, input:focus-visible, .back-link:focus-visible { outline: 3px solid rgba(31, 107, 82, .22); outline-offset: 2px; }
+
+    .icon-btn {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: transparent;
+      font-size: 19px;
+    }
+
+    .icon-btn:hover { background: var(--surface); border-color: #b7b8b1; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr);
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .timer-panel,
+    .plan-panel {
+      min-width: 0;
+      background: var(--surface);
+      border: 1px solid rgba(32, 35, 31, .08);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .timer-panel {
+      display: flex;
+      min-height: 650px;
+      padding: 36px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .now-label {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 760;
+      text-transform: uppercase;
+    }
+
+    .phase-count { color: var(--muted); font-size: 13px; }
+
+    .clock-wrap {
+      position: relative;
+      width: min(100%, 390px);
+      aspect-ratio: 1;
+      margin: 12px auto;
+    }
+
+    .clock-svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
+    .clock-track { fill: none; stroke: #e7e6df; stroke-width: 7; }
+    .clock-progress {
+      fill: none;
+      stroke: var(--green);
+      stroke-width: 9;
+      stroke-linecap: round;
+      transition: stroke-dashoffset .3s linear, stroke .25s ease;
+    }
+
+    .clock-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      padding: 54px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .current-name {
+      max-width: 100%;
+      margin-bottom: 15px;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .time {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(58px, 8vw, 88px);
+      line-height: .95;
+      font-weight: 760;
+    }
+
+    .clock-state {
+      min-height: 20px;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .primary-btn {
+      min-width: 150px;
+      min-height: 52px;
+      padding: 0 24px;
+      border-radius: 7px;
+      color: white;
+      background: var(--ink);
+      font-size: 16px;
+      font-weight: 720;
+    }
+
+    .primary-btn:hover { background: var(--green); }
+
+    .secondary-btn {
+      width: 52px;
+      height: 52px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      font-size: 22px;
+    }
+
+    .secondary-btn:hover { background: var(--paper); }
+
+    .summary {
+      width: 100%;
+      padding-top: 26px;
+      border-top: 1px solid var(--line);
+    }
+
+    .summary-line {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+
+    .summary-line strong { font-size: 15px; }
+    .summary-line span:last-child { color: var(--muted); }
+
+    .timeline {
+      display: flex;
+      width: 100%;
+      height: 10px;
+      overflow: hidden;
+      gap: 3px;
+      border-radius: 3px;
+      background: #ebeae5;
+    }
+
+    .timeline-segment {
+      min-width: 5px;
+      height: 100%;
+      background: var(--segment-color);
+      transition: flex-basis .2s ease, opacity .2s ease;
+    }
+
+    .timeline-segment.done { opacity: .32; }
+
+    .plan-panel {
+      display: flex;
+      min-height: 650px;
+      padding: 30px;
+      flex-direction: column;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .panel-header h2 { margin: 0 0 5px; font-size: 20px; }
+    .panel-header p { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .text-btn {
+      flex: 0 0 auto;
+      padding: 8px 0;
+      color: var(--green);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .text-btn:hover { color: var(--ink); }
+
+    .plan-list {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .plan-row {
+      display: grid;
+      grid-template-columns: 6px minmax(0, 1fr) 82px 64px;
+      min-height: 66px;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 10px 10px 8px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      transition: border-color .18s ease, background-color .18s ease;
+    }
+
+    .plan-row.active { border-color: var(--row-color); background: color-mix(in srgb, var(--row-color) 7%, white); }
+    .plan-row.done { opacity: .55; }
+
+    .color-button {
+      width: 6px;
+      height: 38px;
+      padding: 0;
+      border: 0;
+      border-radius: 3px;
+      background: var(--row-color);
+      cursor: pointer;
+    }
+
+    .name-input,
+    .minute-input {
+      min-width: 0;
+      height: 38px;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      color: var(--ink);
+      background: transparent;
+    }
+
+    .name-input { width: 100%; padding: 0 6px; font-weight: 650; }
+    .minute-input { width: 54px; padding: 0 4px; text-align: right; font-variant-numeric: tabular-nums; }
+    .name-input:hover, .minute-input:hover { border-color: var(--line); }
+    .name-input:focus, .minute-input:focus { border-color: var(--green); background: white; }
+
+    .minutes-box {
+      display: flex;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+
+    .row-action {
+      width: 28px;
+      height: 32px;
+      padding: 0;
+      border-radius: 5px;
+      color: var(--muted);
+      background: transparent;
+      font-size: 15px;
+    }
+
+    .row-action:hover { color: var(--ink); background: #eeede8; }
+    .row-action.delete:hover { color: #b13c2b; }
+
+    .add-btn {
+      width: 100%;
+      min-height: 44px;
+      margin-top: 10px;
+      border: 1px dashed #bfc1ba;
+      border-radius: 7px;
+      color: var(--green);
+      background: transparent;
+      cursor: pointer;
+      font-weight: 680;
+    }
+
+    .add-btn:hover { border-color: var(--green); background: var(--green-soft); }
+
+    .plan-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .switch-label { display: flex; align-items: center; gap: 10px; font-size: 13px; cursor: pointer; }
+    .switch-label input { position: absolute; opacity: 0; pointer-events: none; }
+
+    .switch {
+      position: relative;
+      width: 38px;
+      height: 22px;
+      border: 1px solid #bfc1ba;
+      border-radius: 12px;
+      background: #d8d8d3;
+      transition: background-color .2s ease;
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: white;
+      box-shadow: 0 1px 3px rgba(0,0,0,.15);
+      transition: transform .2s ease;
+    }
+
+    .switch-label input:checked + .switch { border-color: var(--green); background: var(--green); }
+    .switch-label input:checked + .switch::after { transform: translateX(16px); }
+    .switch-label input:focus-visible + .switch { outline: 3px solid rgba(31, 107, 82, .22); outline-offset: 2px; }
+
+    .total { color: var(--muted); font-size: 13px; text-align: right; }
+    .total strong { color: var(--ink); font-size: 16px; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 10;
+      max-width: calc(100% - 32px);
+      padding: 11px 16px;
+      border-radius: 6px;
+      color: white;
+      background: var(--ink);
+      box-shadow: 0 8px 28px rgba(0,0,0,.18);
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 8px);
+      transition: opacity .2s ease, transform .2s ease;
+    }
+
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .timer-panel, .plan-panel { min-height: auto; }
+      .timer-panel { gap: 28px; }
+    }
+
+    @media (max-width: 560px) {
+      .app { width: min(100% - 24px, 480px); padding: 18px 0 28px; }
+      header { margin-bottom: 16px; }
+      .brand p { display: none; }
+      .timer-panel { padding: 24px 18px; }
+      .plan-panel { padding: 22px 16px; }
+      .clock-wrap { width: min(100%, 330px); }
+      .clock-center { padding: 44px; }
+      .time { font-size: clamp(52px, 18vw, 76px); }
+      .plan-row { grid-template-columns: 5px minmax(0, 1fr) 72px 58px; gap: 7px; }
+      .minute-input { width: 46px; }
+      .row-action { width: 27px; }
+      .plan-footer { align-items: flex-end; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <h1>时序</h1>
+          <p>把今天分成刚刚好的段落</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a class="back-link" href="../../index.html#projects" aria-label="返回个人网站项目区">&larr; <span>返回项目</span></a>
+        <button class="icon-btn" id="restorePlan" type="button" title="恢复默认计划" aria-label="恢复默认计划">↺</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <section class="timer-panel" aria-labelledby="timerHeading">
+        <div class="now-label">
+          <span class="eyebrow" id="timerHeading">当前时段</span>
+          <span class="phase-count" id="phaseCount">第 1 / 3 段</span>
+        </div>
+
+        <div class="clock-wrap" aria-live="polite">
+          <svg class="clock-svg" viewBox="0 0 240 240" aria-hidden="true">
+            <circle class="clock-track" cx="120" cy="120" r="108"></circle>
+            <circle class="clock-progress" id="clockProgress" cx="120" cy="120" r="108"></circle>
+          </svg>
+          <div class="clock-center">
+            <div class="current-name" id="currentName">深度工作</div>
+            <div class="time" id="timeDisplay">50:00</div>
+            <div class="clock-state" id="clockState">准备开始</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="secondary-btn" id="resetTimer" type="button" title="重置当前时段" aria-label="重置当前时段">↺</button>
+          <button class="primary-btn" id="toggleTimer" type="button">▶&nbsp;&nbsp;开始</button>
+          <button class="secondary-btn" id="skipPhase" type="button" title="跳到下一时段" aria-label="跳到下一时段">⇥</button>
+        </div>
+
+        <div class="summary">
+          <div class="summary-line">
+            <strong id="remainingSummary">还剩 1 小时 30 分</strong>
+            <span id="finishTime">预计 18:30 完成</span>
+          </div>
+          <div class="timeline" id="timeline" aria-label="时间分配比例"></div>
+        </div>
+      </section>
+
+      <section class="plan-panel" aria-labelledby="planHeading">
+        <div class="panel-header">
+          <div>
+            <h2 id="planHeading">今日计划</h2>
+            <p>点击名称或分钟数即可修改</p>
+          </div>
+          <button class="text-btn" id="clearCompleted" type="button">从头开始</button>
+        </div>
+
+        <div class="plan-list" id="planList"></div>
+        <button class="add-btn" id="addPhase" type="button">＋ 添加时段</button>
+
+        <div class="plan-footer">
+          <label class="switch-label">
+            <input type="checkbox" id="autoContinue" checked>
+            <span class="switch" aria-hidden="true"></span>
+            <span>自动进入下一段</span>
+          </label>
+          <div class="total">总计<br><strong id="totalTime">1 小时 30 分</strong></div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const STORAGE_KEY = 'shixu-timer-plan-v1';
+      const COLORS = ['#1f6b52', '#e7b446', '#4d78a8', '#db634c', '#81689d'];
+      const DEFAULT_PLAN = [
+        { id: 1, name: '深度工作', minutes: 50, color: COLORS[0] },
+        { id: 2, name: '休息与走动', minutes: 10, color: COLORS[1] },
+        { id: 3, name: '收尾与整理', minutes: 30, color: COLORS[2] }
+      ];
+
+      const elements = {
+        planList: document.getElementById('planList'),
+        timeline: document.getElementById('timeline'),
+        timeDisplay: document.getElementById('timeDisplay'),
+        currentName: document.getElementById('currentName'),
+        clockState: document.getElementById('clockState'),
+        phaseCount: document.getElementById('phaseCount'),
+        clockProgress: document.getElementById('clockProgress'),
+        toggleTimer: document.getElementById('toggleTimer'),
+        resetTimer: document.getElementById('resetTimer'),
+        skipPhase: document.getElementById('skipPhase'),
+        addPhase: document.getElementById('addPhase'),
+        clearCompleted: document.getElementById('clearCompleted'),
+        restorePlan: document.getElementById('restorePlan'),
+        autoContinue: document.getElementById('autoContinue'),
+        totalTime: document.getElementById('totalTime'),
+        remainingSummary: document.getElementById('remainingSummary'),
+        finishTime: document.getElementById('finishTime'),
+        toast: document.getElementById('toast')
+      };
+
+      let plan = loadPlan();
+      let currentIndex = 0;
+      let remainingSeconds = plan[0].minutes * 60;
+      let isRunning = false;
+      let endAt = null;
+      let tickHandle = null;
+      let toastHandle = null;
+
+      const circumference = 2 * Math.PI * 108;
+      elements.clockProgress.style.strokeDasharray = String(circumference);
+
+      function loadPlan() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          if (Array.isArray(saved?.plan) && saved.plan.length) {
+            elements.autoContinue.checked = saved.autoContinue !== false;
+            return saved.plan.map((item, index) => ({
+              id: Number(item.id) || Date.now() + index,
+              name: String(item.name || '未命名时段').slice(0, 30),
+              minutes: clampMinutes(item.minutes),
+              color: COLORS.includes(item.color) ? item.color : COLORS[index % COLORS.length]
+            }));
+          }
+        } catch (_) {}
+        return DEFAULT_PLAN.map(item => ({ ...item }));
+      }
+
+      function savePlan() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          plan,
+          autoContinue: elements.autoContinue.checked
+        }));
+      }
+
+      function clampMinutes(value) {
+        const number = Math.round(Number(value));
+        return Number.isFinite(number) ? Math.min(480, Math.max(1, number)) : 1;
+      }
+
+      function formatClock(totalSeconds) {
+        const safe = Math.max(0, Math.ceil(totalSeconds));
+        const minutes = Math.floor(safe / 60);
+        const seconds = safe % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      }
+
+      function formatDuration(totalMinutes) {
+        const minutes = Math.max(0, Math.round(totalMinutes));
+        const hours = Math.floor(minutes / 60);
+        const rest = minutes % 60;
+        if (hours && rest) return `${hours} 小时 ${rest} 分`;
+        if (hours) return `${hours} 小时`;
+        return `${rest} 分钟`;
+      }
+
+      function getRemainingPlanSeconds() {
+        const later = plan.slice(currentIndex + 1).reduce((sum, item) => sum + item.minutes * 60, 0);
+        return remainingSeconds + later;
+      }
+
+      function renderPlan() {
+        elements.planList.innerHTML = '';
+        plan.forEach((item, index) => {
+          const row = document.createElement('div');
+          row.className = `plan-row${index === currentIndex ? ' active' : ''}${index < currentIndex ? ' done' : ''}`;
+          row.style.setProperty('--row-color', item.color);
+          row.dataset.id = String(item.id);
+
+          row.innerHTML = `
+            <button class="color-button" type="button" title="切换颜色" aria-label="切换 ${escapeHtml(item.name)} 的颜色"></button>
+            <input class="name-input" type="text" value="${escapeHtml(item.name)}" maxlength="30" aria-label="时段名称">
+            <label class="minutes-box"><input class="minute-input" type="number" min="1" max="480" step="1" value="${item.minutes}" aria-label="分钟数"> 分</label>
+            <div class="row-actions">
+              <button class="row-action move" type="button" title="上移" aria-label="上移" ${index === 0 ? 'disabled' : ''}>↑</button>
+              <button class="row-action delete" type="button" title="删除" aria-label="删除" ${plan.length === 1 ? 'disabled' : ''}>×</button>
+            </div>`;
+
+          row.querySelector('.color-button').addEventListener('click', () => cycleColor(index));
+          row.querySelector('.name-input').addEventListener('change', event => updateName(index, event.target.value));
+          row.querySelector('.minute-input').addEventListener('change', event => updateMinutes(index, event.target.value));
+          row.querySelector('.move').addEventListener('click', () => moveUp(index));
+          row.querySelector('.delete').addEventListener('click', () => deletePhase(index));
+          elements.planList.appendChild(row);
+        });
+      }
+
+      function renderTimeline() {
+        const total = plan.reduce((sum, item) => sum + item.minutes, 0);
+        elements.timeline.innerHTML = '';
+        plan.forEach((item, index) => {
+          const segment = document.createElement('span');
+          segment.className = `timeline-segment${index < currentIndex ? ' done' : ''}`;
+          segment.style.setProperty('--segment-color', item.color);
+          segment.style.flexBasis = `${(item.minutes / total) * 100}%`;
+          segment.title = `${item.name} · ${item.minutes} 分钟`;
+          elements.timeline.appendChild(segment);
+        });
+      }
+
+      function renderTimer() {
+        const current = plan[currentIndex];
+        const totalSeconds = current.minutes * 60;
+        const progress = totalSeconds ? remainingSeconds / totalSeconds : 0;
+        elements.currentName.textContent = current.name;
+        elements.timeDisplay.textContent = formatClock(remainingSeconds);
+        elements.phaseCount.textContent = `第 ${currentIndex + 1} / ${plan.length} 段`;
+        elements.clockProgress.style.stroke = current.color;
+        elements.clockProgress.style.strokeDashoffset = String(circumference * (1 - Math.min(1, Math.max(0, progress))));
+        elements.toggleTimer.innerHTML = isRunning ? 'Ⅱ&nbsp;&nbsp;暂停' : '▶&nbsp;&nbsp;开始';
+        elements.clockState.textContent = isRunning ? '专注进行中' : (remainingSeconds < totalSeconds ? '已暂停' : '准备开始');
+
+        const remainingPlanSeconds = getRemainingPlanSeconds();
+        elements.remainingSummary.textContent = `还剩 ${formatDuration(Math.ceil(remainingPlanSeconds / 60))}`;
+        const finish = new Date(Date.now() + remainingPlanSeconds * 1000);
+        elements.finishTime.textContent = `预计 ${finish.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })} 完成`;
+        document.title = `${formatClock(remainingSeconds)} · ${current.name}`;
+      }
+
+      function renderTotals() {
+        const total = plan.reduce((sum, item) => sum + item.minutes, 0);
+        elements.totalTime.textContent = formatDuration(total);
+      }
+
+      function renderAll() {
+        renderPlan();
+        renderTimeline();
+        renderTotals();
+        renderTimer();
+      }
+
+      function toggleTimer() {
+        isRunning ? pauseTimer() : startTimer();
+      }
+
+      function startTimer() {
+        if (isRunning) return;
+        isRunning = true;
+        endAt = Date.now() + remainingSeconds * 1000;
+        clearInterval(tickHandle);
+        tickHandle = setInterval(tick, 250);
+        renderTimer();
+      }
+
+      function pauseTimer() {
+        if (!isRunning) return;
+        remainingSeconds = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+        isRunning = false;
+        endAt = null;
+        clearInterval(tickHandle);
+        tickHandle = null;
+        renderTimer();
+      }
+
+      function tick() {
+        remainingSeconds = Math.max(0, (endAt - Date.now()) / 1000);
+        if (remainingSeconds <= 0) completePhase();
+        else renderTimer();
+      }
+
+      function completePhase() {
+        clearInterval(tickHandle);
+        tickHandle = null;
+        playChime();
+
+        if (currentIndex < plan.length - 1) {
+          currentIndex += 1;
+          remainingSeconds = plan[currentIndex].minutes * 60;
+          const shouldContinue = elements.autoContinue.checked;
+          isRunning = false;
+          endAt = null;
+          renderAll();
+          showToast(`已进入：${plan[currentIndex].name}`);
+          if (shouldContinue) startTimer();
+        } else {
+          isRunning = false;
+          endAt = null;
+          remainingSeconds = 0;
+          renderAll();
+          elements.clockState.textContent = '今日计划完成';
+          showToast('今日计划完成');
+        }
+      }
+
+      function resetCurrent() {
+        stopTimer();
+        remainingSeconds = plan[currentIndex].minutes * 60;
+        renderTimer();
+      }
+
+      function skipPhase() {
+        stopTimer();
+        if (currentIndex < plan.length - 1) currentIndex += 1;
+        else currentIndex = 0;
+        remainingSeconds = plan[currentIndex].minutes * 60;
+        renderAll();
+      }
+
+      function startOver() {
+        stopTimer();
+        currentIndex = 0;
+        remainingSeconds = plan[0].minutes * 60;
+        renderAll();
+      }
+
+      function stopTimer() {
+        isRunning = false;
+        endAt = null;
+        clearInterval(tickHandle);
+        tickHandle = null;
+      }
+
+      function addPhase() {
+        stopTimer();
+        const nextColor = COLORS[plan.length % COLORS.length];
+        plan.push({ id: Date.now(), name: '新时段', minutes: 25, color: nextColor });
+        savePlan();
+        renderAll();
+        const lastInput = elements.planList.lastElementChild?.querySelector('.name-input');
+        lastInput?.focus();
+        lastInput?.select();
+      }
+
+      function updateName(index, value) {
+        const clean = value.trim() || '未命名时段';
+        plan[index].name = clean;
+        savePlan();
+        renderAll();
+      }
+
+      function updateMinutes(index, value) {
+        const wasCurrent = index === currentIndex;
+        plan[index].minutes = clampMinutes(value);
+        if (wasCurrent) {
+          stopTimer();
+          remainingSeconds = plan[index].minutes * 60;
+        }
+        savePlan();
+        renderAll();
+      }
+
+      function cycleColor(index) {
+        const colorIndex = COLORS.indexOf(plan[index].color);
+        plan[index].color = COLORS[(colorIndex + 1) % COLORS.length];
+        savePlan();
+        renderAll();
+      }
+
+      function moveUp(index) {
+        if (index <= 0) return;
+        stopTimer();
+        [plan[index - 1], plan[index]] = [plan[index], plan[index - 1]];
+        if (currentIndex === index) currentIndex -= 1;
+        else if (currentIndex === index - 1) currentIndex += 1;
+        remainingSeconds = plan[currentIndex].minutes * 60;
+        savePlan();
+        renderAll();
+      }
+
+      function deletePhase(index) {
+        if (plan.length === 1) return;
+        stopTimer();
+        plan.splice(index, 1);
+        if (index < currentIndex) currentIndex -= 1;
+        if (currentIndex >= plan.length) currentIndex = plan.length - 1;
+        remainingSeconds = plan[currentIndex].minutes * 60;
+        savePlan();
+        renderAll();
+      }
+
+      function restoreDefaultPlan() {
+        stopTimer();
+        plan = DEFAULT_PLAN.map(item => ({ ...item }));
+        currentIndex = 0;
+        remainingSeconds = plan[0].minutes * 60;
+        savePlan();
+        renderAll();
+        showToast('已恢复默认计划');
+      }
+
+      function playChime() {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          const context = new AudioContext();
+          [0, .18].forEach((delay, index) => {
+            const oscillator = context.createOscillator();
+            const gain = context.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.value = index ? 660 : 523.25;
+            gain.gain.setValueAtTime(.0001, context.currentTime + delay);
+            gain.gain.exponentialRampToValueAtTime(.16, context.currentTime + delay + .02);
+            gain.gain.exponentialRampToValueAtTime(.0001, context.currentTime + delay + .45);
+            oscillator.connect(gain).connect(context.destination);
+            oscillator.start(context.currentTime + delay);
+            oscillator.stop(context.currentTime + delay + .5);
+          });
+          setTimeout(() => context.close(), 900);
+        } catch (_) {}
+      }
+
+      function showToast(message) {
+        clearTimeout(toastHandle);
+        elements.toast.textContent = message;
+        elements.toast.classList.add('show');
+        toastHandle = setTimeout(() => elements.toast.classList.remove('show'), 2200);
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>'"]/g, character => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        })[character]);
+      }
+
+      elements.toggleTimer.addEventListener('click', toggleTimer);
+      elements.resetTimer.addEventListener('click', resetCurrent);
+      elements.skipPhase.addEventListener('click', skipPhase);
+      elements.addPhase.addEventListener('click', addPhase);
+      elements.clearCompleted.addEventListener('click', startOver);
+      elements.restorePlan.addEventListener('click', restoreDefaultPlan);
+      elements.autoContinue.addEventListener('change', savePlan);
+      document.addEventListener('visibilitychange', () => {
+        if (isRunning && !document.hidden) tick();
+      });
+
+      renderAll();
+    })();
+  </script>
+</body>
+</html>

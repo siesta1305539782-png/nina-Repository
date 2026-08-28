@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f6f2">
+  <title>代码回炉 - 把踩过的坑变成经验</title>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f5f0;
+      --paper: #fffefa;
+      --ink: #1c211e;
+      --muted: #6b736d;
+      --line: #dfe2dc;
+      --soft: #eceee8;
+      --red: #b9472c;
+      --red-soft: #fbe4dc;
+      --green: #286b4d;
+      --green-soft: #dcefe4;
+      --blue: #34618f;
+      --blue-soft: #e1ebf5;
+      --yellow: #8b671a;
+      --yellow-soft: #f8edc9;
+      --radius: 8px;
+      --shadow: 0 14px 36px rgba(38, 48, 40, .09);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+    button, input, textarea, select { font: inherit; letter-spacing: 0; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, .portfolio-link:focus-visible {
+      outline: 3px solid rgba(52, 97, 143, .24);
+      outline-offset: 2px;
+    }
+    svg { width: 18px; height: 18px; stroke-width: 1.8; }
+    .hidden { display: none !important; }
+
+    .app { min-height: 100vh; display: grid; grid-template-columns: 226px 1fr; }
+    .sidebar {
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      padding: 24px 15px 18px;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--line);
+      background: #f0f1ec;
+      z-index: 30;
+    }
+    .brand { padding: 0 9px 26px; display: flex; align-items: center; gap: 11px; }
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      background: var(--red);
+      color: #fff;
+      font-weight: 820;
+      font-size: 18px;
+      box-shadow: 0 8px 18px rgba(185,71,44,.18);
+    }
+    .brand strong { display: block; font-size: 15px; }
+    .brand span { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .nav-label { margin: 5px 10px 9px; color: #8b918d; font-size: 10px; font-weight: 750; text-transform: uppercase; }
+    .nav { display: grid; gap: 4px; }
+    .nav-button {
+      width: 100%;
+      height: 43px;
+      border: 0;
+      border-radius: 7px;
+      padding: 0 11px;
+      display: grid;
+      grid-template-columns: 21px 1fr auto;
+      align-items: center;
+      gap: 9px;
+      background: transparent;
+      color: #5e6760;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 690;
+      cursor: pointer;
+    }
+    .nav-button:hover { background: rgba(255,255,255,.55); color: var(--ink); }
+    .nav-button.active { background: var(--paper); color: var(--ink); box-shadow: 0 5px 15px rgba(42,51,44,.06); }
+    .nav-count { min-width: 20px; height: 20px; padding: 0 5px; display: grid; place-items: center; border-radius: 10px; background: var(--red-soft); color: var(--red); font-size: 9px; }
+    .add-button {
+      width: calc(100% - 10px);
+      min-height: 42px;
+      margin: 23px 5px 0;
+      border: 1px solid var(--ink);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--ink);
+      color: white;
+      font-size: 12px;
+      font-weight: 730;
+      cursor: pointer;
+    }
+    .add-button:hover { background: #333a35; }
+    .sidebar-bottom { margin-top: auto; padding: 18px 9px 0; border-top: 1px solid var(--line); }
+    .streak { display: flex; align-items: center; gap: 10px; }
+    .streak-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 7px; background: var(--yellow-soft); color: var(--yellow); }
+    .streak strong { display: block; font-size: 12px; }
+    .streak span { display: block; color: var(--muted); margin-top: 3px; font-size: 10px; }
+
+    .main { min-width: 0; }
+    .topbar {
+      height: 66px;
+      padding: 0 clamp(22px, 4vw, 56px);
+      position: sticky;
+      top: 0;
+      z-index: 25;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(245,245,240,.92);
+      backdrop-filter: blur(14px);
+    }
+    .top-date strong { display: block; font-size: 13px; }
+    .top-date span { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .top-actions { display: flex; align-items: center; gap: 9px; }
+    .portfolio-link {
+      min-height: 36px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 11px;
+      font-weight: 720;
+      text-decoration: none;
+    }
+    .portfolio-link:hover { border-color: #bfc5bf; }
+    .icon-button {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      background: var(--paper);
+      color: var(--muted);
+      cursor: pointer;
+      position: relative;
+    }
+    .icon-button:hover { color: var(--ink); border-color: #bfc5bf; }
+    .icon-button::after {
+      content: attr(data-tip);
+      position: absolute;
+      top: calc(100% + 7px);
+      right: 0;
+      padding: 5px 7px;
+      border-radius: 4px;
+      background: #181d19;
+      color: #fff;
+      font-size: 9px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .icon-button:hover::after { opacity: 1; }
+    .avatar { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--blue-soft); color: var(--blue); font-size: 11px; font-weight: 780; }
+
+    .view { display: none; max-width: 1240px; margin: 0 auto; padding: 46px clamp(24px, 4.5vw, 68px) 74px; }
+    .view.active { display: block; }
+    .page-head { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 34px; }
+    .eyebrow { margin-bottom: 9px; color: var(--red); font-size: 11px; font-weight: 780; }
+    h1 { margin: 0; font-size: clamp(31px, 4vw, 46px); line-height: 1.06; font-weight: 800; letter-spacing: 0; }
+    .page-subtitle { max-width: 590px; margin: 10px 0 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .primary-button, .secondary-button, .ghost-button {
+      min-height: 41px;
+      border-radius: 7px;
+      padding: 0 15px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 730;
+      cursor: pointer;
+    }
+    .primary-button { border: 1px solid var(--red); background: var(--red); color: #fff; }
+    .primary-button:hover { background: #9d3822; }
+    .secondary-button { border: 1px solid var(--line); background: var(--paper); }
+    .secondary-button:hover { border-color: #b9c0ba; }
+    .ghost-button { border: 0; background: transparent; color: var(--muted); }
+    .ghost-button:hover { color: var(--ink); background: var(--soft); }
+
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(250px, .7fr); gap: 20px; align-items: stretch; }
+    .review-hero {
+      min-height: 286px;
+      padding: clamp(24px, 4vw, 40px);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #d7ddd7;
+      border-radius: var(--radius);
+      background: #e8eee9;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 220px;
+      gap: 24px;
+      align-items: center;
+    }
+    .review-hero::after {
+      content: "";
+      position: absolute;
+      width: 130px;
+      height: 130px;
+      right: 168px;
+      bottom: -86px;
+      border: 28px solid rgba(40,107,77,.09);
+      border-radius: 50%;
+    }
+    .hero-copy { position: relative; z-index: 2; }
+    .hero-kicker { display: flex; align-items: center; gap: 8px; color: var(--green); font-size: 11px; font-weight: 760; }
+    .hero-kicker span { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(40,107,77,.12); }
+    .hero-copy h2 { margin: 17px 0 10px; font-size: clamp(25px, 3.2vw, 38px); line-height: 1.12; }
+    .hero-copy p { max-width: 430px; margin: 0; color: #59635b; font-size: 13px; line-height: 1.75; }
+    .hero-actions { margin-top: 25px; display: flex; align-items: center; gap: 15px; }
+    .hero-note { color: var(--muted); font-size: 10px; }
+
+    .paper-stack { height: 214px; position: relative; z-index: 2; }
+    .paper-sheet {
+      position: absolute;
+      inset: 0;
+      padding: 23px 20px;
+      border: 1px solid #d7d7cf;
+      border-radius: 5px;
+      background-color: #fffef9;
+      background-image: linear-gradient(#e8ece9 1px, transparent 1px);
+      background-size: 100% 22px;
+      box-shadow: 0 16px 28px rgba(35,49,39,.15);
+      transform: rotate(2.5deg);
+    }
+    .paper-stack::before { content: ""; position: absolute; inset: 7px -5px -4px 9px; border-radius: 5px; background: #d9dcd7; transform: rotate(-4deg); }
+    .paper-subject { display: inline-block; margin-bottom: 22px; padding: 4px 7px; border-radius: 4px; background: var(--blue-soft); color: var(--blue); font-size: 8px; font-weight: 760; }
+    .formula { font: 600 12px/1.9 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #303632; }
+    .red-mark { position: absolute; right: 15px; bottom: 23px; width: 43px; height: 43px; display: grid; place-items: center; border: 2px solid var(--red); border-radius: 50%; color: var(--red); font: 800 12px/1 Georgia, serif; transform: rotate(-10deg); }
+
+    .today-panel { padding: 26px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+    .today-panel-head { display: flex; justify-content: space-between; align-items: center; }
+    .today-panel-head strong { font-size: 13px; }
+    .today-panel-head span { color: var(--muted); font-size: 10px; }
+    .donut-wrap { min-height: 155px; display: grid; place-items: center; }
+    .donut {
+      --done: 33%;
+      width: 118px;
+      height: 118px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(var(--green) var(--done), var(--soft) 0);
+      position: relative;
+    }
+    .donut::before { content: ""; position: absolute; inset: 13px; border-radius: 50%; background: var(--paper); }
+    .donut-value { position: relative; text-align: center; }
+    .donut-value strong { display: block; font-size: 25px; line-height: 1; }
+    .donut-value span { display: block; margin-top: 5px; color: var(--muted); font-size: 9px; }
+    .today-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .today-stat { padding-top: 12px; border-top: 1px solid var(--line); }
+    .today-stat strong { display: block; font-size: 16px; }
+    .today-stat span { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; }
+
+    .section { margin-top: 38px; }
+    .section-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 15px; }
+    .section-head h2 { margin: 0; font-size: 17px; }
+    .section-head p { margin: 4px 0 0; color: var(--muted); font-size: 10px; }
+    .text-link { border: 0; background: transparent; color: var(--blue); font-size: 11px; cursor: pointer; }
+    .text-link:hover { text-decoration: underline; }
+    .queue { display: grid; gap: 8px; }
+    .queue-row {
+      min-height: 74px;
+      padding: 11px 13px;
+      display: grid;
+      grid-template-columns: 48px minmax(0,1fr) auto auto;
+      align-items: center;
+      gap: 13px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--paper);
+      cursor: pointer;
+    }
+    .queue-row:hover { border-color: #bbc3bc; box-shadow: 0 5px 16px rgba(36,45,38,.05); }
+    .subject-tile { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 7px; font-size: 10px; font-weight: 800; }
+    .subject-math { background: var(--blue-soft); color: var(--blue); }
+    .subject-physics { background: var(--red-soft); color: var(--red); }
+    .subject-english { background: var(--green-soft); color: var(--green); }
+    .subject-chemistry { background: var(--yellow-soft); color: var(--yellow); }
+    .queue-copy { min-width: 0; }
+    .queue-copy strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+    .queue-copy span { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; }
+    .reason-tag { padding: 5px 7px; border-radius: 5px; background: var(--soft); color: #5f6861; font-size: 9px; white-space: nowrap; }
+    .due { min-width: 58px; text-align: right; }
+    .due strong { display: block; color: var(--red); font-size: 10px; }
+    .due span { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; }
+
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 20px; }
+    .search {
+      width: min(360px, 100%);
+      height: 40px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--paper);
+      color: var(--muted);
+    }
+    .search input { width: 100%; border: 0; outline: 0; background: transparent; font-size: 12px; color: var(--ink); }
+    .filters { display: flex; flex-wrap: wrap; gap: 6px; }
+    .filter-button { min-height: 34px; padding: 0 11px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--muted); font-size: 10px; cursor: pointer; }
+    .filter-button.active { border-color: var(--ink); background: var(--ink); color: #fff; }
+    .library-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+    .mistake-card { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); cursor: pointer; }
+    .mistake-card:hover { border-color: #bbc2bb; box-shadow: var(--shadow); transform: translateY(-1px); }
+    .card-visual {
+      height: 126px;
+      padding: 15px;
+      position: relative;
+      overflow: hidden;
+      background-color: #eceee9;
+      background-image: linear-gradient(rgba(92,104,95,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(92,104,95,.08) 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+    .mini-paper { height: 110px; padding: 15px; border-radius: 4px; background: #fffefa; box-shadow: 0 8px 18px rgba(43,52,45,.14); transform: rotate(-1.7deg); color: #343934; font: 600 10px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .card-body { padding: 14px 15px 15px; }
+    .card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 9px; }
+    .card-body h3 { margin: 9px 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+    .mastery { display: flex; align-items: center; gap: 7px; }
+    .mastery-track { height: 4px; flex: 1; overflow: hidden; border-radius: 4px; background: var(--soft); }
+    .mastery-fill { height: 100%; border-radius: inherit; background: var(--green); }
+    .mastery span { color: var(--muted); font-size: 9px; }
+    .empty { padding: 56px 20px; border: 1px dashed #c7ccc7; border-radius: var(--radius); text-align: center; color: var(--muted); grid-column: 1 / -1; }
+    .empty svg { width: 30px; height: 30px; margin-bottom: 10px; }
+    .empty strong { display: block; color: var(--ink); font-size: 13px; }
+    .empty span { display: block; margin-top: 6px; font-size: 10px; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .metric { padding: 21px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+    .metric-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 10px; }
+    .metric-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 6px; }
+    .metric-icon svg { width: 15px; height: 15px; }
+    .metric-value { margin-top: 17px; font-size: 28px; font-weight: 800; }
+    .metric-note { margin-top: 5px; color: var(--muted); font-size: 9px; }
+    .chart-grid { margin-top: 18px; display: grid; grid-template-columns: 1.35fr .65fr; gap: 16px; }
+    .chart-panel { padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+    .chart-panel h2 { margin: 0; font-size: 14px; }
+    .chart-panel > p { margin: 5px 0 0; color: var(--muted); font-size: 9px; }
+    .bars { height: 210px; margin-top: 22px; display: flex; align-items: end; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); }
+    .bar-item { height: 100%; flex: 1; display: flex; flex-direction: column; justify-content: end; align-items: center; gap: 7px; }
+    .bar { width: min(28px, 65%); min-height: 4px; border-radius: 4px 4px 0 0; background: var(--blue); transition: height .3s ease; }
+    .bar-item.today .bar { background: var(--red); }
+    .bar-item span { height: 21px; color: var(--muted); font-size: 9px; }
+    .reason-list { display: grid; gap: 15px; margin-top: 26px; }
+    .reason-item { display: grid; gap: 7px; }
+    .reason-line { display: flex; justify-content: space-between; color: #555e57; font-size: 10px; }
+    .reason-bar { height: 7px; overflow: hidden; border-radius: 5px; background: var(--soft); }
+    .reason-bar span { display: block; height: 100%; border-radius: inherit; }
+
+    .review-view { max-width: 980px; }
+    .review-progress { display: flex; align-items: center; gap: 13px; margin-bottom: 24px; }
+    .review-progress-track { height: 5px; flex: 1; border-radius: 5px; overflow: hidden; background: var(--soft); }
+    .review-progress-fill { height: 100%; border-radius: inherit; background: var(--green); transition: width .25s; }
+    .review-progress span { color: var(--muted); font-size: 10px; }
+    .review-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow); overflow: hidden; }
+    .review-card-head { padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid var(--line); }
+    .review-card-head-left { display: flex; align-items: center; gap: 10px; }
+    .review-card-head-left strong { font-size: 12px; }
+    .review-card-head-left span { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
+    .review-question { padding: clamp(24px, 4vw, 44px); display: grid; grid-template-columns: minmax(260px, 1fr) minmax(260px, .85fr); gap: 34px; align-items: start; }
+    .question-paper {
+      min-height: 320px;
+      padding: 34px;
+      border: 1px solid #dedfd8;
+      border-radius: 5px;
+      background-color: #fffef8;
+      background-image: linear-gradient(#edf0ed 1px, transparent 1px);
+      background-size: 100% 27px;
+      box-shadow: 0 12px 24px rgba(40,48,42,.08);
+      position: relative;
+    }
+    .question-paper .subject-stamp { display: inline-block; padding: 5px 8px; border-radius: 4px; background: var(--blue-soft); color: var(--blue); font-size: 9px; font-weight: 750; }
+    .question-paper h2 { margin: 27px 0 13px; font-size: 19px; line-height: 1.45; }
+    .question-content { font: 500 13px/1.85 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-line; }
+    .question-number { position: absolute; top: 30px; right: 30px; color: #afb5b0; font: 700 11px/1 Georgia, serif; }
+    .recall-panel { padding-top: 5px; }
+    .recall-panel h3 { margin: 0; font-size: 16px; }
+    .recall-panel > p { margin: 8px 0 18px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+    .reason-box { padding: 14px 15px; border-left: 3px solid var(--red); border-radius: 0 6px 6px 0; background: var(--red-soft); }
+    .reason-box span { display: block; color: var(--red); font-size: 9px; font-weight: 760; }
+    .reason-box strong { display: block; margin-top: 5px; font-size: 12px; }
+    .answer-reveal { margin-top: 14px; padding: 17px; border-radius: 7px; background: var(--green-soft); color: #234e39; }
+    .answer-reveal span { display: block; font-size: 9px; font-weight: 780; text-transform: uppercase; }
+    .answer-reveal strong { display: block; margin-top: 8px; font-size: 14px; line-height: 1.6; }
+    .answer-reveal p { margin: 9px 0 0; padding-top: 9px; border-top: 1px solid rgba(40,107,77,.18); font-size: 11px; line-height: 1.65; }
+    .reveal-button { width: 100%; margin-top: 16px; }
+    .grade-area { margin-top: 19px; }
+    .grade-area > span { display: block; margin-bottom: 8px; color: var(--muted); font-size: 10px; }
+    .grades { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
+    .grade-button { min-height: 58px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); cursor: pointer; }
+    .grade-button:hover { transform: translateY(-1px); }
+    .grade-button strong { display: block; font-size: 11px; }
+    .grade-button span { display: block; margin-top: 4px; color: var(--muted); font-size: 8px; }
+    .grade-button.again:hover { border-color: var(--red); background: var(--red-soft); }
+    .grade-button.hard:hover { border-color: var(--yellow); background: var(--yellow-soft); }
+    .grade-button.easy:hover { border-color: var(--green); background: var(--green-soft); }
+
+    .modal-backdrop { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 20px; background: rgba(18,24,20,.42); backdrop-filter: blur(5px); }
+    .modal { width: min(670px, 100%); max-height: min(780px, calc(100vh - 36px)); overflow: auto; border-radius: var(--radius); background: var(--paper); box-shadow: 0 24px 70px rgba(23,31,25,.27); }
+    .modal-head { min-height: 66px; padding: 0 22px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 2; background: var(--paper); }
+    .modal-head strong { font-size: 16px; }
+    .close-button { width: 34px; height: 34px; border: 0; border-radius: 6px; display: grid; place-items: center; background: transparent; color: var(--muted); cursor: pointer; }
+    .close-button:hover { background: var(--soft); color: var(--ink); }
+    .form { padding: 22px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .field { display: grid; gap: 7px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { color: #59625b; font-size: 10px; font-weight: 710; }
+    .field input, .field select, .field textarea { width: 100%; border: 1px solid #ccd1cc; border-radius: 6px; background: #fff; color: var(--ink); font-size: 12px; }
+    .field input, .field select { height: 41px; padding: 0 11px; }
+    .field textarea { min-height: 86px; resize: vertical; padding: 10px 11px; line-height: 1.5; }
+    .upload-zone { min-height: 112px; border: 1px dashed #bfc6c0; border-radius: 7px; display: grid; place-items: center; overflow: hidden; background: var(--soft); cursor: pointer; text-align: center; }
+    .upload-zone:hover { border-color: var(--blue); }
+    .upload-zone svg { width: 24px; height: 24px; margin-bottom: 7px; color: var(--blue); }
+    .upload-zone strong { display: block; font-size: 11px; }
+    .upload-zone span { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; }
+    .upload-zone img { width: 100%; height: 190px; object-fit: contain; background: #eceeea; }
+    .form-actions { margin-top: 22px; padding-top: 18px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--line); }
+
+    .toast { position: fixed; left: 50%; bottom: 25px; z-index: 100; min-width: 160px; padding: 11px 15px; border-radius: 6px; background: #18201a; color: white; text-align: center; font-size: 11px; box-shadow: var(--shadow); opacity: 0; transform: translate(-50%, 18px); pointer-events: none; transition: .2s ease; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .mobile-nav { display: none; }
+
+    @media (max-width: 1050px) {
+      .library-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .review-hero { grid-template-columns: 1fr 190px; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .today-panel { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 20px; }
+      .today-panel-head { align-self: start; }
+      .today-panel .donut-wrap { grid-row: 1 / 3; grid-column: 2; }
+    }
+    @media (max-width: 800px) {
+      .app { display: block; padding-bottom: 66px; }
+      .sidebar { display: none; }
+      .topbar { height: 60px; padding: 0 18px; }
+      .view { padding: 34px 20px 56px; }
+      .mobile-nav { height: 66px; padding: 7px 10px 8px; display: grid; grid-template-columns: repeat(4,1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; border-top: 1px solid var(--line); background: rgba(255,254,250,.96); backdrop-filter: blur(14px); }
+      .mobile-nav button { border: 0; border-radius: 6px; display: grid; place-items: center; align-content: center; gap: 3px; background: transparent; color: var(--muted); font-size: 8px; cursor: pointer; }
+      .mobile-nav button svg { width: 17px; height: 17px; }
+      .mobile-nav button.active { color: var(--red); background: var(--red-soft); }
+      .mobile-nav .mobile-add { color: white; background: var(--ink); }
+      .review-question { grid-template-columns: 1fr; }
+      .chart-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 570px) {
+      .top-date span { display: none; }
+      .portfolio-link span { display: none; }
+      .portfolio-link { width: 36px; padding: 0; justify-content: center; }
+      .page-head { align-items: start; margin-bottom: 27px; }
+      .page-head .primary-button span { display: none; }
+      h1 { font-size: 33px; }
+      .review-hero { min-height: 465px; grid-template-columns: 1fr; align-content: start; padding: 25px; }
+      .paper-stack { width: 190px; height: 178px; justify-self: center; }
+      .paper-sheet { padding: 18px; }
+      .formula { font-size: 12px; }
+      .hero-actions { margin-top: 18px; }
+      .today-panel { display: block; padding: 21px; }
+      .today-panel .donut-wrap { min-height: 142px; }
+      .toolbar { align-items: stretch; flex-direction: column; }
+      .search { width: 100%; }
+      .filters { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 3px; }
+      .filter-button { flex: none; }
+      .library-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .metric:last-child { grid-column: 1 / -1; }
+      .queue-row { grid-template-columns: 42px minmax(0,1fr) auto; gap: 10px; }
+      .subject-tile { width: 42px; height: 42px; }
+      .reason-tag { display: none; }
+      .due { min-width: 46px; }
+      .review-card-head { padding: 14px 16px; }
+      .review-question { padding: 20px; gap: 24px; }
+      .question-paper { min-height: 270px; padding: 27px 23px; }
+      .question-content { font-size: 14px; }
+      .grades { grid-template-columns: 1fr; }
+      .grade-button { min-height: 48px; display: flex; justify-content: space-between; align-items: center; padding: 0 14px; }
+      .grade-button span { margin: 0; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .modal-backdrop { padding: 9px; }
+      .modal { max-height: calc(100vh - 18px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">{ }</div><div><strong>代码回炉</strong><span>把踩过的坑变成经验</span></div></div>
+      <p class="nav-label">学习</p>
+      <nav class="nav" aria-label="主导航">
+        <button class="nav-button active" type="button" data-view="home"><i data-lucide="house"></i><span>今日复习</span><span class="nav-count" id="dueCountSide">3</span></button>
+        <button class="nav-button" type="button" data-view="library"><i data-lucide="notebook-tabs"></i><span>问题库</span><span></span></button>
+        <button class="nav-button" type="button" data-view="stats"><i data-lucide="chart-no-axes-column-increasing"></i><span>复习统计</span><span></span></button>
+      </nav>
+      <button class="add-button" id="openAdd" type="button"><i data-lucide="plus"></i><span>记录问题</span></button>
+      <div class="sidebar-bottom"><div class="streak"><div class="streak-icon"><i data-lucide="flame"></i></div><div><strong>连续复习 6 天</strong><span>今天再完成 3 题</span></div></div></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="top-date"><strong id="todayText">8 月 28 日，星期五</strong><span>今天也把一个“不会”变成“会”</span></div>
+        <div class="top-actions"><a class="portfolio-link" href="../../index.html#projects" aria-label="返回个人网站项目区"><i data-lucide="arrow-left"></i><span>返回项目</span></a><button class="icon-button" type="button" data-tip="清空体验数据" id="resetData"><i data-lucide="rotate-ccw"></i></button><div class="avatar">同学</div></div>
+      </header>
+
+      <section class="view active" id="homeView">
+        <div class="page-head"><div><div class="eyebrow">今日计划</div><h1>该回炉了</h1><p class="page-subtitle">主动回忆后再看解析，记忆会比“只看答案”更牢固。</p></div><button class="primary-button" type="button" data-start-review><i data-lucide="play"></i><span>开始复习</span></button></div>
+
+        <div class="hero-grid">
+          <section class="review-hero">
+            <div class="hero-copy"><div class="hero-kicker"><span></span>今日还有 <b id="heroDueCount">3</b> 题</div><h2>先做一遍，<br>再看答案。</h2><p>系统会根据你的掌握程度调整下一次出现时间，越模糊的题越早回来。</p><div class="hero-actions"><button class="primary-button" type="button" data-start-review><i data-lucide="arrow-right"></i>进入复习</button><span class="hero-note">预计 6 分钟</span></div></div>
+            <div class="paper-stack" aria-hidden="true"><div class="paper-sheet"><span class="paper-subject">Compose · 状态</span><div class="formula">var count = 0<br>onClick = { count++ }<br><br>// 为什么没有更新？</div><span class="red-mark">重组</span></div></div>
+          </section>
+          <aside class="today-panel">
+            <div class="today-panel-head"><strong>今日进度</strong><span id="todayFraction">1 / 4</span></div>
+            <div class="donut-wrap"><div class="donut" id="todayDonut"><div class="donut-value"><strong id="todayDone">1</strong><span>已复习</span></div></div></div>
+            <div class="today-stats"><div class="today-stat"><strong id="masteredToday">1</strong><span>今日掌握</span></div><div class="today-stat"><strong id="totalQuestions">5</strong><span>问题总数</span></div></div>
+          </aside>
+        </div>
+
+        <section class="section">
+          <div class="section-head"><div><h2>待复习队列</h2><p>优先展示到期和掌握度较低的代码问题</p></div><button class="text-link" type="button" data-go-library>查看全部</button></div>
+          <div class="queue" id="homeQueue"></div>
+        </section>
+      </section>
+
+      <section class="view" id="libraryView">
+        <div class="page-head"><div><div class="eyebrow">全部记录</div><h1>代码问题库</h1><p class="page-subtitle">按技术分类或根因找到问题，点击任意卡片即可单独复习。</p></div><button class="primary-button" type="button" data-open-add><i data-lucide="plus"></i><span>记录问题</span></button></div>
+        <div class="toolbar"><label class="search"><i data-lucide="search"></i><input id="searchInput" type="search" placeholder="搜索 Bug、API 或知识点" aria-label="搜索代码问题"></label><div class="filters" id="filters"></div></div>
+        <div class="library-grid" id="libraryGrid"></div>
+      </section>
+
+      <section class="view" id="statsView">
+        <div class="page-head"><div><div class="eyebrow">学习反馈</div><h1>复习统计</h1><p class="page-subtitle">了解自己的常见错因，把时间用在最需要改善的地方。</p></div></div>
+        <div class="stats-grid">
+          <div class="metric"><div class="metric-head"><span>累计复习</span><span class="metric-icon" style="background:var(--blue-soft);color:var(--blue)"><i data-lucide="repeat-2"></i></span></div><div class="metric-value" id="totalReviews">18</div><div class="metric-note">比上周多 5 次</div></div>
+          <div class="metric"><div class="metric-head"><span>平均掌握度</span><span class="metric-icon" style="background:var(--green-soft);color:var(--green)"><i data-lucide="circle-check"></i></span></div><div class="metric-value" id="avgMastery">54%</div><div class="metric-note">最近 7 天提升 8%</div></div>
+          <div class="metric"><div class="metric-head"><span>连续复习</span><span class="metric-icon" style="background:var(--yellow-soft);color:var(--yellow)"><i data-lucide="flame"></i></span></div><div class="metric-value">6 天</div><div class="metric-note">个人最佳 11 天</div></div>
+        </div>
+        <div class="chart-grid">
+          <section class="chart-panel"><h2>最近 7 天复习量</h2><p>每天完成的代码问题复习次数</p><div class="bars" id="weekBars"></div></section>
+          <section class="chart-panel"><h2>主要根因</h2><p>根据问题标签统计</p><div class="reason-list" id="reasonList"></div></section>
+        </div>
+      </section>
+
+      <section class="view review-view" id="reviewView">
+        <div class="page-head"><div><div class="eyebrow">主动回忆</div><h1 id="reviewPageTitle">今日复习</h1><p class="page-subtitle">先独立思考，再揭晓答案并诚实评价掌握程度。</p></div><button class="ghost-button" type="button" data-view-button="home"><i data-lucide="x"></i>退出</button></div>
+        <div class="review-progress"><div class="review-progress-track"><div class="review-progress-fill" id="reviewProgressFill"></div></div><span id="reviewProgressText">1 / 3</span></div>
+        <article class="review-card" id="reviewCard"></article>
+      </section>
+    </main>
+  </div>
+
+  <nav class="mobile-nav" aria-label="移动端导航">
+    <button class="active" type="button" data-view="home"><i data-lucide="house"></i><span>复习</span></button>
+    <button type="button" data-view="library"><i data-lucide="notebook-tabs"></i><span>问题库</span></button>
+    <button class="mobile-add" type="button" data-open-add><i data-lucide="plus"></i><span>添加</span></button>
+    <button type="button" data-view="stats"><i data-lucide="chart-no-axes-column-increasing"></i><span>统计</span></button>
+  </nav>
+
+  <div class="modal-backdrop hidden" id="addModal">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+      <header class="modal-head"><strong id="addTitle">记录一个代码问题</strong><button class="close-button" id="closeModal" type="button" aria-label="关闭"><i data-lucide="x"></i></button></header>
+      <form class="form" id="addForm">
+        <div class="form-grid">
+          <div class="field full"><label>代码截图（可选）</label><label class="upload-zone" id="uploadZone"><input class="hidden" id="imageInput" type="file" accept="image/*"><span id="uploadPlaceholder"><i data-lucide="image-plus"></i><strong>选择报错或代码截图</strong><span>支持 JPG、PNG，建议小于 1 MB</span></span><img class="hidden" id="imagePreview" alt="代码截图预览"></label></div>
+          <div class="field"><label for="subjectInput">技术分类</label><select id="subjectInput" required><option>Compose</option><option>Kotlin</option><option>Java</option><option>算法</option><option>Android</option></select></div>
+          <div class="field"><label for="reasonInput">问题根因</label><select id="reasonInput" required><option>状态理解</option><option>API 不熟</option><option>边界遗漏</option><option>空安全</option><option>性能问题</option><option>语法疏漏</option></select></div>
+          <div class="field full"><label for="titleInput">Bug 或知识点</label><input id="titleInput" maxlength="50" required placeholder="例如：重组后计数器归零"></div>
+          <div class="field full"><label for="questionInput">问题代码或现象</label><textarea id="questionInput" required placeholder="粘贴关键代码，并描述出现了什么问题"></textarea></div>
+          <div class="field full"><label for="answerInput">正确写法</label><textarea id="answerInput" required placeholder="写出修复方案与关键代码"></textarea></div>
+          <div class="field full"><label for="noteInput">问题复盘</label><textarea id="noteInput" placeholder="根因是什么？以后遇到类似情况先检查什么？"></textarea></div>
+        </div>
+        <div class="form-actions"><button class="secondary-button" id="cancelModal" type="button">取消</button><button class="primary-button" type="submit"><i data-lucide="check"></i>保存问题</button></div>
+      </form>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const initialQuestions = [
+      { id: 1, subject: 'Compose', reason: '状态理解', title: '重组后计数器归零', question: '@Composable\nfun Counter() {\n  var count = 0\n  Button(onClick = { count++ }) {\n    Text("$count")\n  }\n}\n\n为什么点击后数字不会稳定更新？', answer: '把 count 改为 Compose 可观察状态：var count by remember { mutableIntStateOf(0) }。remember 在重组之间保留值，mutableIntStateOf 让状态变化触发界面更新。', note: '把普通局部变量当成了 UI 状态。看到界面数据会变化时，先确认它是否是可观察状态。', mastery: 28, due: true, next: '今天', reviews: 3, formula: 'var count = 0\n// recomposition resets it' },
+      { id: 2, subject: 'Kotlin', reason: '空安全', title: '非空断言导致崩溃', question: 'val displayName = user!!.profile!!.name\n\n当接口返回 profile = null 时应用崩溃，应该如何改写？', answer: '使用安全调用与默认值：val displayName = user?.profile?.name ?: "游客"。只有确定业务上绝不为空时才考虑 !!。', note: '为了快速消除编译错误连续使用了 !!，没有处理接口数据缺失的真实情况。', mastery: 36, due: true, next: '今天', reviews: 4, formula: 'user!!.profile!!.name\n// NullPointerException' },
+      { id: 3, subject: '算法', reason: '边界遗漏', title: '二分查找漏掉最后一个元素', question: 'var left = 0\nvar right = nums.lastIndex\nwhile (left < right) {\n  val mid = (left + right) / 2\n  ...\n}\n\n为什么目标位于最后一个位置时可能找不到？', answer: '如果区间定义为闭区间 [left, right]，循环条件应使用 left <= right；命中后返回，否则根据比较结果设置 left = mid + 1 或 right = mid - 1。', note: '没有先定义搜索区间的开闭规则，循环条件与指针更新不配套。', mastery: 42, due: true, next: '今天', reviews: 2, formula: 'while (left < right)\n// boundary bug' },
+      { id: 4, subject: 'Java', reason: 'API 不熟', title: '字符串比较使用了 ==', question: 'String role = new String("admin");\nif (role == "admin") {\n  grantAccess();\n}\n\n为什么判断结果为 false？', answer: '== 比较的是对象引用，字符串内容应使用 "admin".equals(role)，这种写法也能避免 role 为 null 时出现异常。', note: '把基本类型的比较习惯带到了对象上。Java 对象比较先考虑 equals。', mastery: 68, due: false, next: '明天', reviews: 5, formula: 'role == "admin"\n// compares references' },
+      { id: 5, subject: 'Compose', reason: '性能问题', title: 'LazyColumn 缺少稳定 key', question: 'LazyColumn {\n  items(tasks) { task ->\n    TaskRow(task)\n  }\n}\n\n列表排序后，项目内部状态为什么可能跟错位置？', answer: '为项目提供稳定身份：items(items = tasks, key = { it.id }) { task -> TaskRow(task) }。不要使用会随顺序变化的索引作为 key。', note: '只关注了显示内容，没有考虑列表重排时 Compose 如何识别同一个项目。', mastery: 74, due: false, next: '3 天后', reviews: 4, formula: 'items(tasks) { task ->\n  TaskRow(task)\n}' }
+    ];
+
+    const storeKey = 'code-review-data-v2';
+    const sessionKey = 'code-review-session-v2';
+    let questions = loadQuestions();
+    let view = 'home';
+    let subjectFilter = '全部';
+    let searchTerm = '';
+    let reviewQueue = [];
+    let reviewIndex = 0;
+    let answerVisible = false;
+    let uploadedImage = '';
+    let todayReviewed = Number(localStorage.getItem(sessionKey) || 1);
+
+    const $ = id => document.getElementById(id);
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const subjectClass = subject => ({'Compose':'math','Kotlin':'english','Java':'physics','算法':'chemistry','Android':'math'}[subject] || 'math');
+
+    function loadQuestions() {
+      try { return JSON.parse(localStorage.getItem(storeKey)) || JSON.parse(JSON.stringify(initialQuestions)); }
+      catch (_) { return JSON.parse(JSON.stringify(initialQuestions)); }
+    }
+    function saveQuestions() { localStorage.setItem(storeKey, JSON.stringify(questions)); }
+    function initIcons() { if (window.lucide) lucide.createIcons({ attrs: { 'aria-hidden': 'true' } }); }
+    function showToast(message) { $('toast').textContent = message; $('toast').classList.add('show'); clearTimeout(showToast.timer); showToast.timer = setTimeout(() => $('toast').classList.remove('show'), 1900); }
+
+    function renderDate() {
+      const date = new Date();
+      $('todayText').textContent = new Intl.DateTimeFormat('zh-CN', { month:'long', day:'numeric', weekday:'long' }).format(date);
+    }
+
+    function dueQuestions() { return questions.filter(q => q.due).sort((a,b) => a.mastery - b.mastery); }
+
+    function switchView(next) {
+      view = next;
+      document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+      $(`${next}View`).classList.add('active');
+      document.querySelectorAll('[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === next));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (next === 'home') renderHome();
+      if (next === 'library') renderLibrary();
+      if (next === 'stats') renderStats();
+      initIcons();
+    }
+
+    function renderHome() {
+      const due = dueQuestions();
+      $('dueCountSide').textContent = due.length;
+      $('heroDueCount').textContent = due.length;
+      $('totalQuestions').textContent = questions.length;
+      $('todayDone').textContent = todayReviewed;
+      $('masteredToday').textContent = Math.max(0, todayReviewed - 1);
+      const dailyTarget = Math.max(4, todayReviewed + due.length);
+      $('todayFraction').textContent = `${todayReviewed} / ${dailyTarget}`;
+      $('todayDonut').style.setProperty('--done', `${Math.min(100, todayReviewed / dailyTarget * 100)}%`);
+      const queue = due.length ? due : questions.slice().sort((a,b) => a.mastery - b.mastery).slice(0,3);
+      $('homeQueue').innerHTML = queue.slice(0,4).map(q => `
+        <article class="queue-row" data-question="${q.id}" tabindex="0" role="button">
+          <div class="subject-tile subject-${subjectClass(q.subject)}">${q.subject}</div>
+          <div class="queue-copy"><strong>${esc(q.title)}</strong><span>掌握度 ${q.mastery}% · 已复习 ${q.reviews} 次</span></div>
+          <span class="reason-tag">${esc(q.reason)}</span>
+          <div class="due"><strong>${q.due ? '待复习' : q.next}</strong><span>${q.subject}</span></div>
+        </article>`).join('') || '<div class="empty"><strong>今天没有待复习问题</strong><span>可以去问题库继续巩固</span></div>';
+      bindQuestionOpeners();
+    }
+
+    function renderFilters() {
+      const subjects = ['全部', ...new Set(questions.map(q => q.subject))];
+      $('filters').innerHTML = subjects.map(subject => `<button class="filter-button ${subjectFilter === subject ? 'active' : ''}" type="button" data-filter="${subject}">${subject}</button>`).join('');
+      document.querySelectorAll('[data-filter]').forEach(btn => btn.addEventListener('click', () => { subjectFilter = btn.dataset.filter; renderLibrary(); }));
+    }
+
+    function renderLibrary() {
+      renderFilters();
+      const term = searchTerm.trim().toLowerCase();
+      const filtered = questions.filter(q => (subjectFilter === '全部' || q.subject === subjectFilter) && (!term || `${q.title}${q.question}${q.reason}`.toLowerCase().includes(term)));
+      $('libraryGrid').innerHTML = filtered.map(q => `
+        <article class="mistake-card" data-question="${q.id}" tabindex="0" role="button">
+          <div class="card-visual">${q.image ? `<img src="${q.image}" alt="${esc(q.title)}" style="width:100%;height:100%;object-fit:cover;border-radius:4px">` : `<div class="mini-paper">${esc(q.formula || q.question).replace(/\n/g,'<br>')}</div>`}</div>
+          <div class="card-body"><div class="card-meta"><span>${q.subject} · ${q.reason}</span><span>${q.next}</span></div><h3>${esc(q.title)}</h3><div class="mastery"><div class="mastery-track"><div class="mastery-fill" style="width:${q.mastery}%"></div></div><span>${q.mastery}%</span></div></div>
+        </article>`).join('') || '<div class="empty"><i data-lucide="search-x"></i><strong>没有找到匹配的问题</strong><span>换一个关键词或技术分类试试</span></div>';
+      bindQuestionOpeners();
+      initIcons();
+    }
+
+    function renderStats() {
+      const totalReviews = questions.reduce((sum,q) => sum + q.reviews, 0);
+      const avg = questions.length ? Math.round(questions.reduce((sum,q) => sum + q.mastery, 0) / questions.length) : 0;
+      $('totalReviews').textContent = totalReviews;
+      $('avgMastery').textContent = `${avg}%`;
+      const values = [2,4,1,5,3,6,Math.max(1,todayReviewed)];
+      const labels = ['六','日','一','二','三','四','今天'];
+      const max = Math.max(...values);
+      $('weekBars').innerHTML = values.map((v,i) => `<div class="bar-item ${i === 6 ? 'today' : ''}"><div class="bar" style="height:${Math.max(6, v/max*165)}px" title="${v} 次"></div><span>${labels[i]}</span></div>`).join('');
+      const colors = ['var(--red)','var(--blue)','var(--yellow)','var(--green)'];
+      const reasons = {};
+      questions.forEach(q => reasons[q.reason] = (reasons[q.reason] || 0) + 1);
+      const sorted = Object.entries(reasons).sort((a,b) => b[1]-a[1]).slice(0,4);
+      const maxReason = Math.max(1, ...sorted.map(x => x[1]));
+      $('reasonList').innerHTML = sorted.map(([reason,count],i) => `<div class="reason-item"><div class="reason-line"><span>${reason}</span><span>${count} 题</span></div><div class="reason-bar"><span style="width:${count/maxReason*100}%;background:${colors[i]}"></span></div></div>`).join('');
+    }
+
+    function startReview(singleId) {
+      reviewQueue = singleId ? questions.filter(q => q.id === singleId) : dueQuestions();
+      if (!reviewQueue.length) reviewQueue = questions.slice().sort((a,b) => a.mastery-b.mastery).slice(0,3);
+      reviewIndex = 0;
+      answerVisible = false;
+      switchView('review');
+      renderReview();
+    }
+
+    function renderReview() {
+      const q = reviewQueue[reviewIndex];
+      if (!q) return finishReview();
+      $('reviewPageTitle').textContent = reviewQueue.length === 1 ? '单题复习' : '今日复习';
+      $('reviewProgressText').textContent = `${reviewIndex + 1} / ${reviewQueue.length}`;
+      $('reviewProgressFill').style.width = `${(reviewIndex + 1) / reviewQueue.length * 100}%`;
+      $('reviewCard').innerHTML = `
+        <header class="review-card-head"><div class="review-card-head-left"><div class="subject-tile subject-${subjectClass(q.subject)}">${q.subject}</div><div><strong>${esc(q.title)}</strong><span>上次错因：${esc(q.reason)}</span></div></div><span class="reason-tag">掌握度 ${q.mastery}%</span></header>
+        <div class="review-question">
+          <div class="question-paper">${q.image ? `<img src="${q.image}" alt="代码截图" style="width:100%;max-height:260px;object-fit:contain;margin-bottom:15px">` : ''}<span class="subject-stamp">${q.subject}</span><span class="question-number">#${String(q.id).padStart(2,'0')}</span><h2>${esc(q.title)}</h2><div class="question-content">${esc(q.question)}</div></div>
+          <div class="recall-panel"><h3>${answerVisible ? '对照解析' : '先在心里做一遍'}</h3><p>${answerVisible ? '比较自己的思路，重点找出产生错误的那一步。' : '不需要真的写完，但请先说出解题思路，再查看答案。'}</p><div class="reason-box"><span>上次为什么错</span><strong>${esc(q.note || q.reason)}</strong></div>
+            ${answerVisible ? `<div class="answer-reveal"><span>正确写法</span><strong>${esc(q.answer)}</strong><p>这次你掌握得怎么样？评价会决定下一次复习时间。</p></div><div class="grade-area"><span>选择真实的掌握程度</span><div class="grades"><button class="grade-button again" type="button" data-grade="again"><strong>不会</strong><span>10 分钟后</span></button><button class="grade-button hard" type="button" data-grade="hard"><strong>模糊</strong><span>明天再看</span></button><button class="grade-button easy" type="button" data-grade="easy"><strong>掌握</strong><span>4 天后</span></button></div></div>` : `<button class="primary-button reveal-button" id="revealAnswer" type="button"><i data-lucide="eye"></i>查看修复方案</button>`}
+          </div>
+        </div>`;
+      if ($('revealAnswer')) $('revealAnswer').addEventListener('click', () => { answerVisible = true; renderReview(); });
+      document.querySelectorAll('[data-grade]').forEach(btn => btn.addEventListener('click', () => gradeQuestion(btn.dataset.grade)));
+      initIcons();
+    }
+
+    function gradeQuestion(grade) {
+      const reviewed = reviewQueue[reviewIndex];
+      const q = questions.find(item => item.id === reviewed.id);
+      const settings = {
+        again: { mastery: Math.max(10, q.mastery - 10), next: '10 分钟后', due: true, label: '这道题很快会再次出现' },
+        hard: { mastery: Math.min(85, q.mastery + 8), next: '明天', due: false, label: '已安排明天复习' },
+        easy: { mastery: Math.min(100, q.mastery + 18), next: '4 天后', due: false, label: '已安排 4 天后复习' }
+      }[grade];
+      Object.assign(q, settings, { reviews: q.reviews + 1 });
+      delete q.label;
+      todayReviewed += 1;
+      localStorage.setItem(sessionKey, String(todayReviewed));
+      saveQuestions();
+      showToast(settings.label);
+      reviewIndex += 1;
+      answerVisible = false;
+      if (reviewIndex >= reviewQueue.length) setTimeout(finishReview, 450); else setTimeout(renderReview, 320);
+    }
+
+    function finishReview() {
+      showToast('本轮复习完成');
+      switchView('home');
+    }
+
+    function bindQuestionOpeners() {
+      document.querySelectorAll('[data-question]').forEach(el => {
+        el.addEventListener('click', () => startReview(Number(el.dataset.question)));
+        el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startReview(Number(el.dataset.question)); } });
+      });
+    }
+
+    function openModal() { $('addModal').classList.remove('hidden'); document.body.style.overflow = 'hidden'; setTimeout(() => $('subjectInput').focus(), 60); }
+    function closeModal() { $('addModal').classList.add('hidden'); document.body.style.overflow = ''; $('addForm').reset(); uploadedImage = ''; $('imagePreview').classList.add('hidden'); $('uploadPlaceholder').classList.remove('hidden'); }
+
+    function addQuestion(event) {
+      event.preventDefault();
+      const subject = $('subjectInput').value;
+      const question = {
+        id: Date.now(), subject, reason: $('reasonInput').value, title: $('titleInput').value.trim(), question: $('questionInput').value.trim(), answer: $('answerInput').value.trim(), note: $('noteInput').value.trim(), mastery: 15, due: true, next: '今天', reviews: 0, image: uploadedImage, formula: $('questionInput').value.trim().slice(0,90)
+      };
+      questions.unshift(question);
+      saveQuestions();
+      closeModal();
+      renderHome();
+      showToast('代码问题已加入今日复习');
+    }
+
+    function resetExperience() {
+      questions = JSON.parse(JSON.stringify(initialQuestions));
+      todayReviewed = 1;
+      localStorage.removeItem(storeKey);
+      localStorage.setItem(sessionKey, '1');
+      subjectFilter = '全部'; searchTerm = '';
+      if ($('searchInput')) $('searchInput').value = '';
+      renderHome(); renderLibrary(); renderStats();
+      switchView('home');
+      showToast('体验数据已重置');
+    }
+
+    document.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.view)));
+    document.querySelectorAll('[data-view-button]').forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.viewButton)));
+    document.querySelectorAll('[data-start-review]').forEach(btn => btn.addEventListener('click', () => startReview()));
+    document.querySelectorAll('[data-go-library]').forEach(btn => btn.addEventListener('click', () => switchView('library')));
+    document.querySelectorAll('[data-open-add]').forEach(btn => btn.addEventListener('click', openModal));
+    $('openAdd').addEventListener('click', openModal);
+    $('closeModal').addEventListener('click', closeModal);
+    $('cancelModal').addEventListener('click', closeModal);
+    $('addModal').addEventListener('click', e => { if (e.target === $('addModal')) closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('addModal').classList.contains('hidden')) closeModal(); });
+    $('addForm').addEventListener('submit', addQuestion);
+    $('searchInput').addEventListener('input', e => { searchTerm = e.target.value; renderLibrary(); });
+    $('resetData').addEventListener('click', resetExperience);
+    $('imageInput').addEventListener('change', event => {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (file.size > 1024 * 1024) { showToast('图片请控制在 1 MB 以内'); event.target.value = ''; return; }
+      const reader = new FileReader();
+      reader.onload = () => { uploadedImage = reader.result; $('imagePreview').src = uploadedImage; $('imagePreview').classList.remove('hidden'); $('uploadPlaceholder').classList.add('hidden'); };
+      reader.readAsDataURL(file);
+    });
+
+    renderDate();
+    renderHome();
+    renderLibrary();
+    renderStats();
+    initIcons();
+  </script>
+</body>
+</html>

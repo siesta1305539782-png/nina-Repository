@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8f5">
+  <title>Compose Lab - Jetpack Compose 入门学习工具</title>
+  <style>
+    :root {
+      --canvas: #f4f5f1;
+      --surface: #ffffff;
+      --surface-soft: #eef1eb;
+      --surface-warm: #fff4ec;
+      --ink: #1b1f1b;
+      --muted: #667069;
+      --line: #dce1da;
+      --green: #196b45;
+      --green-strong: #0f5637;
+      --green-soft: #d9f1e3;
+      --blue: #315f95;
+      --blue-soft: #e3edf9;
+      --coral: #b84d2d;
+      --coral-soft: #ffe7dc;
+      --yellow: #8c6412;
+      --shadow: 0 14px 34px rgba(28, 44, 34, .09);
+      --code: #17201b;
+      --code-ink: #e8f1eb;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+    button, input, select { font: inherit; letter-spacing: 0; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible, select:focus-visible, .portfolio-link:focus-visible {
+      outline: 3px solid rgba(49, 95, 149, .28);
+      outline-offset: 2px;
+    }
+
+    .app-shell { min-height: 100vh; }
+    .topbar {
+      height: 66px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(244, 245, 241, .92);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      background: var(--ink);
+      color: #fff;
+      font: 700 15px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .brand-copy strong { display: block; font-size: 15px; line-height: 1.15; }
+    .brand-copy span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
+    .top-actions { display: flex; align-items: center; gap: 12px; }
+    .portfolio-link {
+      min-height: 38px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 11px;
+      font-weight: 720;
+      text-decoration: none;
+    }
+    .portfolio-link:hover { border-color: #b8c0b8; }
+    .top-progress { display: flex; align-items: center; gap: 12px; }
+    .progress-copy { text-align: right; }
+    .progress-copy strong { display: block; font-size: 13px; }
+    .progress-copy span { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .progress-ring {
+      --progress: 0deg;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(var(--green) var(--progress), var(--line) 0);
+      position: relative;
+      font-size: 10px;
+      font-weight: 750;
+    }
+    .progress-ring::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border-radius: 50%;
+      background: var(--canvas);
+    }
+    .progress-ring span { position: relative; }
+
+    .workspace {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 236px minmax(440px, 1fr) minmax(420px, 600px);
+      min-height: calc(100vh - 66px);
+    }
+    .course-nav {
+      padding: 28px 18px 32px 24px;
+      border-right: 1px solid var(--line);
+      position: sticky;
+      top: 66px;
+      height: calc(100vh - 66px);
+      overflow: auto;
+    }
+    .nav-label {
+      margin: 0 8px 11px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+    .lesson-list { display: grid; gap: 5px; }
+    .lesson-link {
+      width: 100%;
+      min-height: 58px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      padding: 9px 10px;
+      display: grid;
+      grid-template-columns: 28px 1fr 16px;
+      align-items: center;
+      gap: 9px;
+      text-align: left;
+      cursor: pointer;
+    }
+    .lesson-link:hover { background: rgba(255,255,255,.65); }
+    .lesson-link[aria-current="step"] { background: var(--surface); box-shadow: 0 4px 16px rgba(34,47,39,.06); }
+    .lesson-number {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      background: var(--surface-soft);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .lesson-link[aria-current="step"] .lesson-number { background: var(--green); color: white; }
+    .lesson-link.done .lesson-number { background: var(--green-soft); color: var(--green-strong); }
+    .lesson-name { min-width: 0; }
+    .lesson-name strong { display: block; font-size: 13px; line-height: 1.25; }
+    .lesson-name span { display: block; color: var(--muted); font-size: 10px; margin-top: 4px; }
+    .lesson-check { color: var(--green); font-size: 14px; opacity: 0; }
+    .lesson-link.done .lesson-check { opacity: 1; }
+    .nav-note {
+      margin: 26px 8px 0;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.65;
+    }
+
+    .lesson-content {
+      padding: 48px clamp(30px, 4vw, 68px) 72px;
+      min-width: 0;
+    }
+    .eyebrow { display: flex; align-items: center; gap: 9px; color: var(--green-strong); font-size: 12px; font-weight: 750; }
+    .eyebrow::before { content: ""; width: 18px; height: 2px; background: var(--green); }
+    h1 { margin: 14px 0 14px; font-size: clamp(32px, 4vw, 52px); line-height: 1.03; font-weight: 790; letter-spacing: 0; }
+    .lead { max-width: 660px; margin: 0; color: #4f5851; font-size: 16px; line-height: 1.8; }
+    .lesson-meta { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 24px; }
+    .meta-item {
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(255,255,255,.5);
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .section { margin-top: 42px; }
+    .section h2 { margin: 0 0 13px; font-size: 19px; line-height: 1.3; }
+    .section p { color: #4f5851; font-size: 14px; line-height: 1.8; }
+    .concept-list { display: grid; gap: 10px; margin-top: 18px; }
+    .concept {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 13px;
+      align-items: start;
+      padding: 15px 0;
+      border-top: 1px solid var(--line);
+    }
+    .concept-index {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .concept strong { display: block; margin: 1px 0 5px; font-size: 14px; }
+    .concept p { margin: 0; font-size: 13px; line-height: 1.65; }
+    .insight {
+      margin-top: 26px;
+      padding: 18px 20px;
+      border-left: 3px solid var(--coral);
+      background: var(--surface-warm);
+      border-radius: 0 7px 7px 0;
+    }
+    .insight strong { display: block; color: var(--coral); font-size: 12px; margin-bottom: 6px; }
+    .insight p { margin: 0; font-size: 13px; line-height: 1.7; }
+
+    .quiz { margin-top: 18px; display: grid; gap: 9px; }
+    .quiz-option {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      padding: 11px 14px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      text-align: left;
+      cursor: pointer;
+    }
+    .quiz-option:hover { border-color: #aeb9b0; }
+    .quiz-option.correct { border-color: var(--green); background: var(--green-soft); }
+    .quiz-option.wrong { border-color: var(--coral); background: var(--coral-soft); }
+    .option-letter { color: var(--muted); font: 700 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .quiz-feedback { min-height: 22px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .lesson-actions { margin-top: 42px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .text-button, .primary-button {
+      min-height: 42px;
+      border-radius: 7px;
+      padding: 0 16px;
+      font-weight: 720;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .text-button { border: 1px solid var(--line); background: transparent; }
+    .text-button:hover { background: var(--surface); }
+    .primary-button { border: 1px solid var(--green); background: var(--green); color: #fff; }
+    .primary-button:hover { background: var(--green-strong); }
+    .primary-button.done { background: var(--surface); color: var(--green-strong); border-color: var(--green); }
+
+    .lab {
+      min-width: 0;
+      padding: 28px clamp(18px, 2.4vw, 38px) 48px;
+      background: #e9ece6;
+      border-left: 1px solid var(--line);
+    }
+    .lab-sticky { position: sticky; top: 94px; display: grid; gap: 14px; }
+    .lab-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+    .lab-title { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 760; }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #26a66b; box-shadow: 0 0 0 4px rgba(38,166,107,.12); }
+    .reset-button, .icon-button {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .reset-button { padding: 6px 0; font-size: 11px; }
+    .reset-button:hover { color: var(--ink); }
+    .preview-zone {
+      min-height: 320px;
+      display: grid;
+      grid-template-columns: minmax(180px, 230px) minmax(140px, 1fr);
+      gap: clamp(16px, 2vw, 28px);
+      align-items: center;
+      padding: 22px;
+      background-color: #dfe4dd;
+      background-image: linear-gradient(rgba(92,108,97,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(92,108,97,.08) 1px, transparent 1px);
+      background-size: 18px 18px;
+      border: 1px solid #d2d8d1;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .phone {
+      width: 100%;
+      max-width: 224px;
+      aspect-ratio: 9 / 17.5;
+      max-height: 390px;
+      justify-self: center;
+      border: 7px solid #252b27;
+      border-radius: 25px;
+      background: #fbfcfa;
+      box-shadow: 0 18px 30px rgba(34,44,37,.19);
+      overflow: hidden;
+      position: relative;
+    }
+    .phone::before {
+      content: "";
+      position: absolute;
+      z-index: 4;
+      top: 7px;
+      left: 50%;
+      width: 45px;
+      height: 5px;
+      transform: translateX(-50%);
+      border-radius: 4px;
+      background: #252b27;
+    }
+    .phone-screen { height: 100%; display: flex; flex-direction: column; background: #fbfcfa; color: #1b1c1b; overflow: hidden; }
+    .status-bar { height: 21px; padding: 7px 12px 0; display: flex; justify-content: space-between; font-size: 6px; font-weight: 700; flex: none; }
+    .app-bar { min-height: 42px; padding: 8px 13px; display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 750; flex: none; }
+    .preview-content { flex: 1; min-height: 0; position: relative; overflow: auto; }
+    .preview-footer { height: 18px; display: grid; place-items: center; flex: none; }
+    .preview-footer::after { content: ""; width: 48px; height: 3px; border-radius: 3px; background: #424843; }
+
+    .preview-greeting { height: 100%; display: grid; place-items: center; padding: 14px; }
+    .greeting-card { width: 100%; padding: 18px 14px; border-radius: 12px; color: #fff; text-align: center; box-shadow: 0 9px 18px rgba(26,55,39,.15); }
+    .greeting-card small { display: block; opacity: .8; font-size: 7px; text-transform: uppercase; }
+    .greeting-card strong { display: block; margin-top: 5px; font-size: 17px; }
+
+    .counter-preview { height: 100%; display: grid; place-content: center; justify-items: center; gap: 12px; }
+    .counter-preview .count { font-size: 43px; font-weight: 780; line-height: 1; }
+    .counter-preview .caption { color: #68716a; font-size: 8px; }
+    .counter-actions { display: flex; gap: 8px; }
+    .round-action { width: 34px; height: 34px; border: 0; border-radius: 11px; background: #d9f1e3; color: #0f5637; font-size: 18px; cursor: pointer; }
+
+    .layout-preview { height: 100%; display: flex; padding: 14px; gap: 9px; }
+    .layout-block { border-radius: 8px; min-height: 36px; padding: 9px; color: white; font-size: 8px; font-weight: 700; display: grid; place-items: center; }
+    .layout-block:nth-child(1) { background: #315f95; }
+    .layout-block:nth-child(2) { background: #196b45; }
+    .layout-block:nth-child(3) { background: #b84d2d; }
+
+    .list-preview { padding: 6px 10px 12px; display: grid; gap: 6px; }
+    .list-row { min-height: 43px; display: grid; grid-template-columns: 28px 1fr 14px; align-items: center; gap: 8px; padding: 6px; border-radius: 8px; background: #f0f3ee; }
+    .list-avatar { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; background: #dce8f5; color: #315f95; font-size: 9px; font-weight: 800; }
+    .list-copy strong { display: block; font-size: 8px; }
+    .list-copy span { display: block; color: #6c746e; font-size: 6px; margin-top: 3px; }
+    .list-arrow { color: #879089; font-size: 10px; }
+
+    .form-preview { padding: 18px 13px; }
+    .field-label { color: #5d665f; font-size: 7px; }
+    .fake-field { margin-top: 4px; min-height: 39px; display: flex; align-items: center; padding: 0 10px; border: 1px solid #7c8780; border-radius: 8px; font-size: 9px; }
+    .hello-message { margin-top: 13px; padding: 10px; border-radius: 8px; background: #e3edf9; color: #244d7b; font-size: 9px; line-height: 1.45; }
+
+    .todo-preview { padding: 7px 10px 12px; display: grid; gap: 6px; }
+    .todo-row { min-height: 36px; display: flex; align-items: center; gap: 8px; padding: 7px; border-radius: 8px; background: #f0f3ee; font-size: 8px; cursor: pointer; }
+    .todo-box { width: 13px; height: 13px; display: grid; place-items: center; border: 1px solid #6f7972; border-radius: 4px; flex: none; color: white; font-size: 8px; }
+    .todo-row.checked .todo-box { border-color: #196b45; background: #196b45; }
+    .todo-row.checked .todo-text { color: #7c857e; text-decoration: line-through; }
+
+    .controls { display: grid; gap: 16px; align-self: stretch; align-content: center; min-width: 0; }
+    .control { display: grid; gap: 7px; }
+    .control label, .control-header { display: flex; justify-content: space-between; gap: 8px; color: #586159; font-size: 10px; font-weight: 680; }
+    .control output { color: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .control input[type="text"] {
+      width: 100%;
+      height: 37px;
+      border: 1px solid #c8d0c9;
+      border-radius: 6px;
+      background: rgba(255,255,255,.78);
+      padding: 0 10px;
+      font-size: 11px;
+    }
+    .control input[type="range"] { width: 100%; accent-color: var(--green); }
+    .segments { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    .segment { min-width: 0; min-height: 33px; border: 1px solid #c8d0c9; border-radius: 6px; background: rgba(255,255,255,.65); color: #59625b; font-size: 10px; cursor: pointer; }
+    .segment.active { border-color: var(--ink); background: var(--ink); color: white; }
+    .swatches { display: flex; gap: 8px; }
+    .swatch { width: 30px; height: 30px; border: 2px solid transparent; border-radius: 50%; cursor: pointer; position: relative; }
+    .swatch.active { border-color: white; box-shadow: 0 0 0 2px var(--ink); }
+    .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .switch { width: 42px; height: 24px; border: 0; border-radius: 14px; background: #aeb7b0; padding: 3px; cursor: pointer; }
+    .switch::before { content: ""; display: block; width: 18px; height: 18px; border-radius: 50%; background: white; transition: transform .2s; }
+    .switch[aria-checked="true"] { background: var(--green); }
+    .switch[aria-checked="true"]::before { transform: translateX(18px); }
+
+    .code-panel { border-radius: var(--radius); overflow: hidden; background: var(--code); box-shadow: var(--shadow); }
+    .code-toolbar { height: 40px; padding: 0 12px 0 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,.1); }
+    .code-toolbar span { color: #aab7ae; font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .copy-button { width: 30px; height: 30px; border: 0; border-radius: 6px; display: grid; place-items: center; background: transparent; color: #b9c6bd; cursor: pointer; position: relative; }
+    .copy-button:hover { background: rgba(255,255,255,.09); color: white; }
+    .copy-button::after { content: attr(data-tip); position: absolute; right: 0; bottom: calc(100% + 7px); padding: 5px 7px; border-radius: 4px; background: #111; color: white; font-size: 9px; opacity: 0; pointer-events: none; white-space: nowrap; }
+    .copy-button:hover::after { opacity: 1; }
+    .copy-icon { width: 13px; height: 13px; border: 1.5px solid currentColor; border-radius: 2px; position: relative; }
+    .copy-icon::before { content: ""; position: absolute; width: 8px; height: 8px; border: 1.5px solid currentColor; border-radius: 2px; left: -5px; top: -5px; background: var(--code); }
+    pre { margin: 0; max-height: 280px; overflow: auto; padding: 17px; color: var(--code-ink); font: 11px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; tab-size: 2; }
+    .tok-key { color: #ffad8a; }
+    .tok-fn { color: #8dddb1; }
+    .tok-str { color: #f4d47c; }
+    .tok-type { color: #8fc7ff; }
+    .tok-num { color: #d9b8ff; }
+    .tok-comment { color: #819087; font-style: italic; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 100;
+      transform: translate(-50%, 18px);
+      padding: 10px 14px;
+      border-radius: 6px;
+      background: #17201b;
+      color: white;
+      box-shadow: var(--shadow);
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 1180px) {
+      .workspace { grid-template-columns: 190px minmax(360px, 1fr) minmax(360px, 470px); }
+      .course-nav { padding-left: 14px; padding-right: 10px; }
+      .lesson-content { padding-left: 30px; padding-right: 30px; }
+      .preview-zone { grid-template-columns: minmax(160px, 205px) minmax(120px, 1fr); padding: 16px; }
+    }
+    @media (max-width: 960px) {
+      .workspace { display: block; }
+      .course-nav {
+        height: auto;
+        padding: 11px 18px;
+        top: 66px;
+        z-index: 30;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        background: rgba(244,245,241,.96);
+        overflow-x: auto;
+      }
+      .nav-label, .nav-note { display: none; }
+      .lesson-list { display: flex; width: max-content; }
+      .lesson-link { width: auto; min-width: 150px; min-height: 49px; grid-template-columns: 26px 1fr; }
+      .lesson-check, .lesson-name span { display: none; }
+      .lesson-content { padding: 38px clamp(22px, 6vw, 64px) 48px; }
+      .lab { border-left: 0; border-top: 1px solid var(--line); padding: 28px clamp(22px, 6vw, 64px) 50px; }
+      .lab-sticky { position: static; }
+      .preview-zone { grid-template-columns: minmax(180px, 230px) 1fr; min-height: 380px; }
+      .phone { max-height: 360px; }
+    }
+    @media (max-width: 620px) {
+      .topbar { height: 60px; padding: 0 15px; }
+      .brand-copy span, .progress-copy { display: none; }
+      .portfolio-link span { display: none; }
+      .portfolio-link { width: 38px; padding: 0; justify-content: center; }
+      .course-nav { top: 60px; padding: 8px 12px; }
+      .lesson-link { min-width: 132px; }
+      .workspace { min-height: calc(100vh - 60px); }
+      .lesson-content { padding: 31px 20px 40px; }
+      h1 { font-size: 35px; }
+      .lead { font-size: 14px; }
+      .section { margin-top: 34px; }
+      .lesson-actions { align-items: stretch; }
+      .text-button, .primary-button { flex: 1; padding: 0 10px; }
+      .lab { padding: 24px 14px 40px; }
+      .preview-zone { grid-template-columns: 1fr; min-height: 0; padding: 18px 16px; }
+      .phone { width: 196px; height: 350px; }
+      .controls { width: 100%; grid-template-columns: repeat(2, minmax(0,1fr)); align-items: end; }
+      .control:only-child { grid-column: 1 / -1; }
+      pre { max-height: 330px; font-size: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">{ }</div>
+        <div class="brand-copy"><strong>Compose Lab</strong><span>从零构建 Android 界面</span></div>
+      </div>
+      <div class="top-actions">
+        <a class="portfolio-link" href="../../index.html#projects" aria-label="返回个人网站项目区">&larr; <span>返回项目</span></a>
+        <div class="top-progress" aria-label="课程进度">
+          <div class="progress-copy"><strong id="progressText">0 / 6 已完成</strong><span id="progressHint">从第一节开始</span></div>
+          <div class="progress-ring" id="progressRing"><span id="progressPercent">0%</span></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <nav class="course-nav" aria-label="课程目录">
+        <p class="nav-label">学习路径</p>
+        <div class="lesson-list" id="lessonList"></div>
+        <p class="nav-note">每节约 8 分钟。调整右侧参数，观察代码与界面如何同步变化。</p>
+      </nav>
+
+      <main class="lesson-content" id="lessonContent" tabindex="-1">
+        <div class="eyebrow" id="lessonEyebrow"></div>
+        <h1 id="lessonTitle"></h1>
+        <p class="lead" id="lessonLead"></p>
+        <div class="lesson-meta" id="lessonMeta"></div>
+
+        <section class="section" aria-labelledby="learnTitle">
+          <h2 id="learnTitle">这一节你会掌握</h2>
+          <div class="concept-list" id="conceptList"></div>
+        </section>
+
+        <aside class="insight">
+          <strong id="insightLabel">关键理解</strong>
+          <p id="insightText"></p>
+        </aside>
+
+        <section class="section" id="quizSection" aria-labelledby="quizTitle">
+          <h2 id="quizTitle">快速检查</h2>
+          <p id="quizQuestion"></p>
+          <div class="quiz" id="quizOptions"></div>
+          <div class="quiz-feedback" id="quizFeedback" aria-live="polite"></div>
+        </section>
+
+        <div class="lesson-actions">
+          <button class="text-button" id="prevButton" type="button">← 上一节</button>
+          <button class="primary-button" id="completeButton" type="button">完成并继续 →</button>
+        </div>
+      </main>
+
+      <aside class="lab" aria-label="Compose 交互实验台">
+        <div class="lab-sticky">
+          <div class="lab-header">
+            <div class="lab-title"><span class="live-dot" aria-hidden="true"></span>实时实验台</div>
+            <button class="reset-button" id="resetButton" type="button">重置参数</button>
+          </div>
+          <div class="preview-zone">
+            <div class="phone" aria-label="Android 手机预览">
+              <div class="phone-screen" id="phoneScreen"></div>
+            </div>
+            <div class="controls" id="controls"></div>
+          </div>
+          <div class="code-panel">
+            <div class="code-toolbar"><span>MainActivity.kt</span><button class="copy-button" id="copyButton" type="button" data-tip="复制代码" aria-label="复制代码"><span class="copy-icon" aria-hidden="true"></span></button></div>
+            <pre><code id="codeOutput"></code></pre>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const lessons = [
+      {
+        id: 'first', title: '第一个 Composable', short: 'Composable', duration: '8 分钟', level: '基础',
+        lead: '用一个函数描述界面，并理解为什么 Compose 不再需要 XML 布局。',
+        concepts: [
+          ['@Composable', '这个注解告诉编译器：函数会描述一部分界面。函数名通常使用大驼峰命名。'],
+          ['声明式 UI', '你只描述界面在当前状态下应该长什么样，Compose 负责把变化绘制出来。'],
+          ['Modifier', '用可组合的修饰器控制尺寸、间距、背景与点击行为，顺序会影响最终结果。']
+        ],
+        insight: 'Composable 不是“创建 View”的命令。它更像一张随状态重新计算的界面蓝图。',
+        quiz: { q: '哪一个注解用于标记 Compose UI 函数？', options: ['@Ui', '@Composable', '@Preview'], answer: 1, explain: '正确。@Composable 让函数可以调用其他 Composable 并参与组合。' },
+        defaults: { name: 'Compose', color: 'green' },
+        controls: ['name', 'color']
+      },
+      {
+        id: 'state', title: '状态与重组', short: '状态', duration: '10 分钟', level: '核心',
+        lead: '让界面记住计数，并在状态变化时自动更新，不需要手动刷新任何 View。',
+        concepts: [
+          ['remember', '在重组之间保留一个值。没有它，局部变量会在函数再次执行时回到初始值。'],
+          ['mutableStateOf', '创建 Compose 可观察的状态；读取它的界面会在数值改变后自动重组。'],
+          ['状态提升', '把状态移到调用方，让组件接收 value 与 onValueChange，会更容易复用和测试。']
+        ],
+        insight: '重组不是把整个屏幕推倒重建。Compose 会追踪状态读取，只更新可能受影响的部分。',
+        quiz: { q: '希望局部状态在重组后仍保留，通常应使用什么？', options: ['remember', 'Column', 'Modifier'], answer: 0, explain: '正确。remember 会让值在当前组合的重组之间保持。' },
+        defaults: { count: 2, step: 1 },
+        controls: ['step']
+      },
+      {
+        id: 'layout', title: 'Row、Column 与间距', short: '布局', duration: '9 分钟', level: '基础',
+        lead: '用 Row 和 Column 组织内容，再通过 Arrangement 与 Modifier 精确控制布局。',
+        concepts: [
+          ['Column / Row', 'Column 沿垂直方向排列子项，Row 沿水平方向排列子项。它们覆盖大多数线性布局。'],
+          ['Arrangement', '控制主轴上的分布方式，例如 Start、Center、SpaceBetween 与 spacedBy。'],
+          ['Modifier 顺序', 'padding().background() 与 background().padding() 的视觉结果不同，修饰器会从左到右包装组件。']
+        ],
+        insight: '先判断主轴方向，再处理主轴分布与交叉轴对齐，复杂布局会简单很多。',
+        quiz: { q: '要让三个元素水平排列，最直接的容器是？', options: ['Column', 'Row', 'Box'], answer: 1, explain: '正确。Row 会沿水平方向依次放置子项。' },
+        defaults: { direction: 'column', spacing: 9, align: 'start' },
+        controls: ['direction', 'spacing', 'align']
+      },
+      {
+        id: 'list', title: '高效列表 LazyColumn', short: '列表', duration: '8 分钟', level: '常用',
+        lead: '只组合屏幕附近的列表项，并为动态数据提供稳定、可追踪的 key。',
+        concepts: [
+          ['LazyColumn', '适合长列表，只组合当前可见及附近的内容，角色类似 RecyclerView。'],
+          ['items', '接收数据集合，为每一项执行一段 Composable 内容。'],
+          ['稳定 key', '数据顺序变化时，key 帮助 Compose 识别项目身份并正确保留项目状态。']
+        ],
+        insight: '短小固定内容可以用 Column；数据量大或会滚动时，优先考虑 LazyColumn。',
+        quiz: { q: '动态列表重新排序时，key 的主要作用是什么？', options: ['改变颜色', '标识项目身份', '开启滚动'], answer: 1, explain: '正确。稳定 key 让 Compose 在数据变化后仍能识别同一项目。' },
+        defaults: { items: 4, compact: false },
+        controls: ['items', 'compact']
+      },
+      {
+        id: 'input', title: '输入与单向数据流', short: '输入', duration: '10 分钟', level: '核心',
+        lead: '把用户输入变成状态，再由状态驱动界面，形成清晰可预测的数据流。',
+        concepts: [
+          ['value', 'TextField 展示的内容来自状态，是当前界面的单一事实来源。'],
+          ['onValueChange', '用户编辑时触发回调，在这里更新状态，随后界面会显示新值。'],
+          ['单向数据流', '状态向下传递，事件向上传递。组件因此更容易理解、测试与复用。']
+        ],
+        insight: '不要让多个位置各自保存同一份数据。把状态放在它们最近的共同父级中。',
+        quiz: { q: '单向数据流通常指什么？', options: ['状态向下，事件向上', '事件和状态都向下', '只允许一个组件'], answer: 0, explain: '正确。状态向下驱动 UI，用户事件向上请求状态变化。' },
+        defaults: { input: '小林', enabled: true },
+        controls: ['input', 'enabled']
+      },
+      {
+        id: 'practice', title: '实战：迷你任务清单', short: '实战', duration: '12 分钟', level: '综合',
+        lead: '把状态、列表、布局与事件组合成一个可以真实操作的迷你应用。',
+        concepts: [
+          ['不可变模型', '用 data class 表达界面数据，通过 copy 创建变化后的新值，更新路径更清楚。'],
+          ['事件回调', '列表项只报告点击事件，状态拥有者决定怎样改变数据。'],
+          ['派生界面', '完成数、筛选结果和提示文案都可以从当前任务状态计算出来。']
+        ],
+        insight: 'Compose 的核心循环很短：读取状态 → 描述 UI → 接收事件 → 更新状态。',
+        quiz: { q: '点击任务后，推荐的状态更新方式是？', options: ['直接修改 Text', '创建更新后的列表状态', '重新启动 Activity'], answer: 1, explain: '正确。生成更新后的状态，Compose 就会据此重组界面。' },
+        defaults: { showDone: true, todos: [false, true, false] },
+        controls: ['showDone']
+      }
+    ];
+
+    const palette = { green: '#196b45', blue: '#315f95', coral: '#b84d2d' };
+    let current = Number(localStorage.getItem('compose-lab-current') || 0);
+    if (!Number.isInteger(current) || current < 0 || current >= lessons.length) current = 0;
+    const completed = new Set(JSON.parse(localStorage.getItem('compose-lab-completed') || '[]'));
+    let state = typeof structuredClone === 'function' ? structuredClone(lessons[current].defaults) : JSON.parse(JSON.stringify(lessons[current].defaults));
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (value) => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    function cloneDefaults(index) {
+      return JSON.parse(JSON.stringify(lessons[index].defaults));
+    }
+
+    function saveProgress() {
+      localStorage.setItem('compose-lab-current', String(current));
+      localStorage.setItem('compose-lab-completed', JSON.stringify([...completed]));
+    }
+
+    function renderNav() {
+      $('lessonList').innerHTML = lessons.map((lesson, index) => `
+        <button type="button" class="lesson-link ${completed.has(lesson.id) ? 'done' : ''}" data-index="${index}" ${index === current ? 'aria-current="step"' : ''}>
+          <span class="lesson-number">${completed.has(lesson.id) ? '✓' : index + 1}</span>
+          <span class="lesson-name"><strong>${lesson.short}</strong><span>${lesson.duration}</span></span>
+          <span class="lesson-check" aria-hidden="true">✓</span>
+        </button>`).join('');
+      document.querySelectorAll('.lesson-link').forEach(btn => btn.addEventListener('click', () => goToLesson(Number(btn.dataset.index))));
+    }
+
+    function renderProgress() {
+      const count = completed.size;
+      const percent = Math.round(count / lessons.length * 100);
+      $('progressText').textContent = `${count} / ${lessons.length} 已完成`;
+      $('progressPercent').textContent = `${percent}%`;
+      $('progressRing').style.setProperty('--progress', `${percent * 3.6}deg`);
+      $('progressHint').textContent = count === lessons.length ? '入门路径已完成' : count ? '继续保持节奏' : '从第一节开始';
+    }
+
+    function renderLesson() {
+      const lesson = lessons[current];
+      $('lessonEyebrow').textContent = `第 ${current + 1} 节 · ${lesson.level}`;
+      $('lessonTitle').textContent = lesson.title;
+      $('lessonLead').textContent = lesson.lead;
+      $('lessonMeta').innerHTML = `<span class="meta-item">预计 ${lesson.duration}</span><span class="meta-item">难度 · ${lesson.level}</span><span class="meta-item">含交互练习</span>`;
+      $('conceptList').innerHTML = lesson.concepts.map((item, index) => `<div class="concept"><span class="concept-index">0${index + 1}</span><div><strong>${item[0]}</strong><p>${item[1]}</p></div></div>`).join('');
+      $('insightText').textContent = lesson.insight;
+      $('quizQuestion').textContent = lesson.quiz.q;
+      $('quizOptions').innerHTML = lesson.quiz.options.map((option, index) => `<button type="button" class="quiz-option" data-index="${index}"><span class="option-letter">${String.fromCharCode(65 + index)}</span><span>${option}</span></button>`).join('');
+      $('quizFeedback').textContent = '';
+      document.querySelectorAll('.quiz-option').forEach(btn => btn.addEventListener('click', checkQuiz));
+      $('prevButton').disabled = current === 0;
+      $('prevButton').style.visibility = current === 0 ? 'hidden' : 'visible';
+      $('completeButton').textContent = completed.has(lesson.id) ? (current === lessons.length - 1 ? '已完成 ✓' : '下一节 →') : (current === lessons.length - 1 ? '完成课程 ✓' : '完成并继续 →');
+      $('completeButton').classList.toggle('done', completed.has(lesson.id));
+      renderLab();
+    }
+
+    function checkQuiz(event) {
+      const lesson = lessons[current];
+      const selected = Number(event.currentTarget.dataset.index);
+      document.querySelectorAll('.quiz-option').forEach((btn, index) => {
+        btn.classList.remove('correct', 'wrong');
+        if (index === lesson.quiz.answer) btn.classList.add('correct');
+        else if (index === selected) btn.classList.add('wrong');
+      });
+      $('quizFeedback').textContent = selected === lesson.quiz.answer ? lesson.quiz.explain : `再想一下：${lesson.quiz.options[lesson.quiz.answer]} 才是这里的关键。`;
+    }
+
+    function phoneFrame(content, title = 'Compose Lab') {
+      return `<div class="status-bar"><span>9:41</span><span>● ◔</span></div><div class="app-bar"><span>${title}</span><span>⋮</span></div><div class="preview-content">${content}</div><div class="preview-footer"></div>`;
+    }
+
+    function renderPreview() {
+      let html = '';
+      if (current === 0) {
+        html = phoneFrame(`<div class="preview-greeting"><div class="greeting-card" style="background:${palette[state.color]}"><small>Hello</small><strong>${esc(state.name || 'Compose')}</strong></div></div>`, 'Hello');
+      } else if (current === 1) {
+        html = phoneFrame(`<div class="counter-preview"><span class="caption">当前计数</span><span class="count">${state.count}</span><div class="counter-actions"><button class="round-action" id="minusPreview" type="button" aria-label="减少">−</button><button class="round-action" id="plusPreview" type="button" aria-label="增加">+</button></div></div>`, 'Counter');
+      } else if (current === 2) {
+        const direction = state.direction === 'row' ? 'row' : 'column';
+        const align = state.align === 'center' ? 'center' : state.align === 'end' ? 'flex-end' : 'flex-start';
+        html = phoneFrame(`<div class="layout-preview" style="flex-direction:${direction};gap:${state.spacing}px;align-items:${direction === 'row' ? align : 'stretch'};justify-content:${direction === 'column' ? align : 'flex-start'}"><div class="layout-block">Text</div><div class="layout-block">Button</div><div class="layout-block">Icon</div></div>`, 'Layout');
+      } else if (current === 3) {
+        const rows = Array.from({length: state.items}, (_, i) => `<div class="list-row" style="min-height:${state.compact ? 34 : 43}px"><span class="list-avatar">${i + 1}</span><span class="list-copy"><strong>Compose 练习 ${i + 1}</strong><span>${i % 2 ? '状态与事件' : '布局与修饰器'}</span></span><span class="list-arrow">›</span></div>`).join('');
+        html = phoneFrame(`<div class="list-preview">${rows}</div>`, `课程 · ${state.items}`);
+      } else if (current === 4) {
+        html = phoneFrame(`<div class="form-preview"><span class="field-label">你的名字</span><div class="fake-field">${esc(state.input) || '请输入名字'}</div>${state.enabled && state.input ? `<div class="hello-message">你好，${esc(state.input)}！<br>状态正在驱动这条消息。</div>` : ''}</div>`, 'Profile');
+      } else {
+        const names = ['理解状态', '完成列表练习', '构建第一个应用'];
+        const todos = names.map((name, i) => ({ name, done: state.todos[i], i })).filter(item => state.showDone || !item.done).map(item => `<button type="button" class="todo-row ${item.done ? 'checked' : ''}" data-todo="${item.i}"><span class="todo-box">${item.done ? '✓' : ''}</span><span class="todo-text">${item.name}</span></button>`).join('');
+        html = phoneFrame(`<div class="todo-preview">${todos || '<div class="hello-message">所有任务都隐藏了</div>'}</div>`, `任务 · ${state.todos.filter(Boolean).length}/3`);
+      }
+      $('phoneScreen').innerHTML = html;
+      if ($('minusPreview')) $('minusPreview').addEventListener('click', () => { state.count -= state.step; updateDynamic(); });
+      if ($('plusPreview')) $('plusPreview').addEventListener('click', () => { state.count += state.step; updateDynamic(); });
+      document.querySelectorAll('[data-todo]').forEach(btn => btn.addEventListener('click', () => { const i = Number(btn.dataset.todo); state.todos[i] = !state.todos[i]; updateDynamic(); }));
+    }
+
+    function controlMarkup(type) {
+      if (type === 'name') return `<div class="control"><label for="nameControl"><span>显示名称</span><output>${esc(state.name)}</output></label><input id="nameControl" type="text" value="${esc(state.name)}" maxlength="16"></div>`;
+      if (type === 'color') return `<div class="control"><span class="control-header"><span>主题颜色</span><output>${state.color}</output></span><div class="swatches">${Object.entries(palette).map(([name, color]) => `<button class="swatch ${state.color === name ? 'active' : ''}" type="button" data-color="${name}" aria-label="${name}" style="background:${color}"></button>`).join('')}</div></div>`;
+      if (type === 'step') return `<div class="control"><label for="stepControl"><span>每次变化</span><output>${state.step}</output></label><input id="stepControl" type="range" min="1" max="5" value="${state.step}"></div>`;
+      if (type === 'direction') return `<div class="control"><span class="control-header"><span>排列方向</span><output>${state.direction}</output></span><div class="segments"><button class="segment ${state.direction === 'column' ? 'active' : ''}" data-direction="column" type="button">Column</button><button class="segment ${state.direction === 'row' ? 'active' : ''}" data-direction="row" type="button">Row</button></div></div>`;
+      if (type === 'spacing') return `<div class="control"><label for="spacingControl"><span>元素间距</span><output>${state.spacing} dp</output></label><input id="spacingControl" type="range" min="0" max="24" value="${state.spacing}"></div>`;
+      if (type === 'align') return `<div class="control"><span class="control-header"><span>对齐方式</span><output>${state.align}</output></span><div class="segments">${['start','center','end'].map(x => `<button class="segment ${state.align === x ? 'active' : ''}" data-align="${x}" type="button">${x}</button>`).join('')}</div></div>`;
+      if (type === 'items') return `<div class="control"><label for="itemsControl"><span>列表项目</span><output>${state.items}</output></label><input id="itemsControl" type="range" min="1" max="7" value="${state.items}"></div>`;
+      if (type === 'compact') return `<div class="control switch-row"><span class="control-header">紧凑模式</span><button class="switch" id="compactControl" type="button" role="switch" aria-checked="${state.compact}"></button></div>`;
+      if (type === 'input') return `<div class="control"><label for="inputControl"><span>TextField 状态</span><output>${state.input.length}/12</output></label><input id="inputControl" type="text" value="${esc(state.input)}" maxlength="12"></div>`;
+      if (type === 'enabled') return `<div class="control switch-row"><span class="control-header">显示问候</span><button class="switch" id="enabledControl" type="button" role="switch" aria-checked="${state.enabled}"></button></div>`;
+      if (type === 'showDone') return `<div class="control switch-row"><span class="control-header">显示已完成</span><button class="switch" id="showDoneControl" type="button" role="switch" aria-checked="${state.showDone}"></button></div>`;
+      return '';
+    }
+
+    function bindControls() {
+      if ($('nameControl')) $('nameControl').addEventListener('input', e => { state.name = e.target.value; updateDynamic(); });
+      document.querySelectorAll('[data-color]').forEach(btn => btn.addEventListener('click', () => { state.color = btn.dataset.color; renderLab(); }));
+      if ($('stepControl')) $('stepControl').addEventListener('input', e => { state.step = Number(e.target.value); updateDynamic(); });
+      document.querySelectorAll('[data-direction]').forEach(btn => btn.addEventListener('click', () => { state.direction = btn.dataset.direction; renderLab(); }));
+      if ($('spacingControl')) $('spacingControl').addEventListener('input', e => { state.spacing = Number(e.target.value); updateDynamic(); });
+      document.querySelectorAll('[data-align]').forEach(btn => btn.addEventListener('click', () => { state.align = btn.dataset.align; renderLab(); }));
+      if ($('itemsControl')) $('itemsControl').addEventListener('input', e => { state.items = Number(e.target.value); updateDynamic(); });
+      if ($('compactControl')) $('compactControl').addEventListener('click', () => { state.compact = !state.compact; renderLab(); });
+      if ($('inputControl')) $('inputControl').addEventListener('input', e => { state.input = e.target.value; updateDynamic(); });
+      if ($('enabledControl')) $('enabledControl').addEventListener('click', () => { state.enabled = !state.enabled; renderLab(); });
+      if ($('showDoneControl')) $('showDoneControl').addEventListener('click', () => { state.showDone = !state.showDone; renderLab(); });
+    }
+
+    function codeForLesson() {
+      if (current === 0) return `@Composable\nfun Greeting(name: String) {\n  Card(\n    colors = CardDefaults.cardColors(\n      containerColor = Color(${state.color === 'green' ? '0xFF196B45' : state.color === 'blue' ? '0xFF315F95' : '0xFFB84D2D'})\n    )\n  ) {\n    Text(\n      text = "Hello, ${state.name || 'Compose'}!",\n      modifier = Modifier.padding(24.dp)\n    )\n  }\n}`;
+      if (current === 1) return `@Composable\nfun Counter() {\n  var count by remember {\n    mutableIntStateOf(${state.count})\n  }\n\n  Column(horizontalAlignment = Alignment.CenterHorizontally) {\n    Text(text = "$count")\n    Button(onClick = { count += ${state.step} }) {\n      Text("增加 ${state.step}")\n    }\n  }\n}`;
+      if (current === 2) {
+        const container = state.direction === 'row' ? 'Row' : 'Column';
+        return `@Composable\nfun ToolRow() {\n  ${container}(\n    modifier = Modifier.padding(16.dp),\n    ${state.direction === 'row' ? 'horizontal' : 'vertical'}Arrangement = Arrangement.spacedBy(${state.spacing}.dp),\n    horizontalAlignment = Alignment.${state.align === 'start' ? 'Start' : state.align === 'center' ? 'CenterHorizontally' : 'End'}\n  ) {\n    Text("Text")\n    Button(onClick = {}) { Text("Button") }\n    Icon(Icons.Default.Star, null)\n  }\n}`;
+      }
+      if (current === 3) return `data class Lesson(val id: Int, val title: String)\n\n@Composable\nfun LessonList(lessons: List<Lesson>) {\n  LazyColumn(\n    verticalArrangement = Arrangement.spacedBy(${state.compact ? '4' : '8'}.dp)\n  ) {\n    items(\n      items = lessons.take(${state.items}),\n      key = { lesson -> lesson.id }\n    ) { lesson ->\n      LessonRow(lesson)\n    }\n  }\n}`;
+      if (current === 4) return `@Composable\nfun NameForm() {\n  var name by rememberSaveable {\n    mutableStateOf("${state.input}")\n  }\n\n  Column {\n    OutlinedTextField(\n      value = name,\n      onValueChange = { name = it },\n      label = { Text("你的名字") }\n    )\n    ${state.enabled ? 'if (name.isNotBlank()) {\n      Text("你好，$name！")\n    }' : '// 问候消息当前已关闭'}\n  }\n}`;
+      return `data class Todo(\n  val id: Int,\n  val title: String,\n  val done: Boolean = false\n)\n\n@Composable\nfun TodoList() {\n  var todos by remember { mutableStateOf(sampleTodos) }\n\n  LazyColumn {\n    items(todos, key = { it.id }) { todo ->\n      TodoRow(todo = todo, onToggle = {\n        todos = todos.map { item ->\n          if (item.id == todo.id)\n            item.copy(done = !item.done)\n          else item\n        }\n      })\n    }\n  }\n}`;
+    }
+
+    function highlight(code) {
+      let out = esc(code);
+      const comments = [];
+      out = out.replace(/(\/\/[^\n]*)/g, match => { comments.push(match); return `___COMMENT_${String.fromCharCode(65 + comments.length - 1)}___`; });
+      out = out.replace(/(&quot;.*?&quot;)/g, '<span class="tok-str">$1</span>');
+      out = out.replace(/\b(@Composable|fun|var|val|data|class|if|else|by|return)\b/g, '<span class="tok-key">$1</span>');
+      out = out.replace(/\b(String|Int|Boolean|Modifier|Color|Alignment|Arrangement|List|Text|Card|Column|Row|Button|Icon|LazyColumn|OutlinedTextField|Todo|Lesson)\b/g, '<span class="tok-type">$1</span>');
+      out = out.replace(/\b(remember|rememberSaveable|mutableStateOf|mutableIntStateOf|padding|spacedBy|items|map|copy|take)\b/g, '<span class="tok-fn">$1</span>');
+      out = out.replace(/\b(\d+)\b/g, '<span class="tok-num">$1</span>');
+      comments.forEach((comment, i) => { out = out.replace(`___COMMENT_${String.fromCharCode(65 + i)}___`, `<span class="tok-comment">${comment}</span>`); });
+      return out;
+    }
+
+    function renderLab() {
+      $('controls').innerHTML = lessons[current].controls.map(controlMarkup).join('');
+      bindControls();
+      updateDynamic(false);
+    }
+
+    function updateDynamic(refreshControls = true) {
+      renderPreview();
+      $('codeOutput').innerHTML = highlight(codeForLesson());
+      if (refreshControls) {
+        const focused = document.activeElement && document.activeElement.id;
+        lessons[current].controls.forEach(type => {
+          if (type === 'step' && $('stepControl')) $('stepControl').previousElementSibling.querySelector('output').textContent = state.step;
+          if (type === 'spacing' && $('spacingControl')) $('spacingControl').previousElementSibling.querySelector('output').textContent = `${state.spacing} dp`;
+          if (type === 'items' && $('itemsControl')) $('itemsControl').previousElementSibling.querySelector('output').textContent = state.items;
+          if (type === 'name' && $('nameControl')) $('nameControl').previousElementSibling.querySelector('output').textContent = state.name;
+          if (type === 'input' && $('inputControl')) $('inputControl').previousElementSibling.querySelector('output').textContent = `${state.input.length}/12`;
+        });
+        if (focused && $(focused)) $(focused).focus();
+      }
+    }
+
+    function goToLesson(index) {
+      if (index < 0 || index >= lessons.length) return;
+      current = index;
+      state = cloneDefaults(current);
+      saveProgress();
+      renderNav();
+      renderLesson();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showToast(message) {
+      $('toast').textContent = message;
+      $('toast').classList.add('show');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => $('toast').classList.remove('show'), 1800);
+    }
+
+    $('prevButton').addEventListener('click', () => goToLesson(current - 1));
+    $('completeButton').addEventListener('click', () => {
+      const lesson = lessons[current];
+      if (!completed.has(lesson.id)) {
+        completed.add(lesson.id);
+        saveProgress();
+        renderProgress();
+        renderNav();
+        showToast('本节已完成，进度已保存');
+      }
+      if (current < lessons.length - 1) setTimeout(() => goToLesson(current + 1), 260);
+      else renderLesson();
+    });
+    $('resetButton').addEventListener('click', () => { state = cloneDefaults(current); renderLab(); showToast('参数已重置'); });
+    $('copyButton').addEventListener('click', async () => {
+      const text = codeForLesson();
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (_) {
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand('copy');
+        area.remove();
+      }
+      $('copyButton').dataset.tip = '已复制';
+      showToast('代码已复制');
+      setTimeout(() => $('copyButton').dataset.tip = '复制代码', 1500);
+    });
+
+    renderNav();
+    renderProgress();
+    renderLesson();
+  </script>
+</body>
+</html>
